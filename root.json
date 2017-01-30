@@ -1,0 +1,19 @@
+{
+    "type": "VBox",
+    "children": [
+        {
+            "type": "PullRight",
+            "child": {
+                "type": "TextButton",
+                "text": "Create new thing",
+                "url": "/things",
+                "method": "POST",
+                "body": {"attrib": "value"}
+            }
+        },
+        {
+                "type": "Text",
+                "text": "Listing things"
+        }
+    ]
+}
