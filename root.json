@@ -1,19 +1,26 @@
 {
     "type": "VBox",
-    "children": [
-        {
-            "type": "PullRight",
-            "child": {
-                "type": "TextButton",
-                "text": "Create new thing",
-                "url": "/things",
-                "method": "POST",
-                "body": {"attrib": "value"}
+    "children": {
+        "row": {
+            "type": "HBox",
+            "children": {
+                "pullRight": {
+                    "type": "PullRight",
+                    "children": {
+                        "createButton": {
+                            "type": "TextButton",
+                            "text": "Create new thing",
+                            "url": "/things",
+                            "method": "POST",
+                            "body": {"attrib": "value"}
+                        }
+                    }
+                },
+                "title": {
+                    "type": "Text",
+                    "text": "Listing things"
+                }
             }
-        },
-        {
-                "type": "Text",
-                "text": "Listing things"
         }
-    ]
+    }
 }

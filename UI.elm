@@ -1,27 +1,48 @@
 module UI exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (..)
 import Json.Decode as Json exposing (..)
+import Layout
 import Text
 import TextButton
 
 
 type Model
-    = VBox VBoxModel
-    | PullRight Model
+    = Layout (Layout.Model Model Msg)
     | Text Text.Model
     | TextButton TextButton.Model
     | Unknown
 
 
-type alias VBoxModel =
-    List Model
+type alias PaneUpdater msg model =
+    msg -> model -> ( model, Cmd msg )
+
+
+type alias PaneViewer msg model =
+    model -> Html msg
+
+
+type alias Pane msg model =
+    { decoder : Decoder model
+    , makeModel : model -> Model
+    , makeMsg : msg -> Msg
+    , update : PaneUpdater msg model
+    , view : PaneViewer msg model
+    }
+
+
+text : Pane Text.Msg Text.Model
+text =
+    Pane Text.decodeModel Text TextMsg Text.update Text.view
+
+
+textButton : Pane TextButton.Msg TextButton.Model
+textButton =
+    Pane TextButton.decodeModel TextButton TextButtonMsg TextButton.update TextButton.view
 
 
 type Msg
-    = VBoxMsg Int Msg
-    | PullRightMsg Msg
+    = LayoutMsg (Layout.Msg Msg)
     | TextMsg Text.Msg
     | TextButtonMsg TextButton.Msg
 
@@ -33,155 +54,70 @@ decodeModel =
 
 decodeRest : String -> Decoder Model
 decodeRest type_ =
-    case (Debug.log "parsing" type_) of
-        "VBox" ->
-            Json.map VBox <| decodeVBox
+    oneOf
+        [ Json.map Layout (Layout.decodeModel type_ decodeModel)
+        , decodePane type_
+        ]
 
-        "PullRight" ->
-            Json.map PullRight <| decodePullRight
 
+decodePane : String -> Decoder Model
+decodePane type_ =
+    case type_ of
         "Text" ->
-            Json.map Text <| Text.decodeModel
+            Json.map text.makeModel text.decoder
 
         "TextButton" ->
-            Json.map TextButton <| TextButton.decodeModel
+            Json.map textButton.makeModel textButton.decoder
 
         _ ->
-            (Debug.log "found unknown node" type_) |> (always (Json.succeed Unknown))
-
-
-decodeVBox : Decoder VBoxModel
-decodeVBox =
-    (field "children" (Json.list (lazy (\_ -> decodeModel))))
-
-
-decodePullRight : Decoder Model
-decodePullRight =
-    (field "child" (lazy (\_ -> decodeModel)))
+            Json.succeed Unknown
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model ) of
-        ( VBoxMsg i vboxMsg, VBox vboxModel ) ->
-            updateVBox i vboxMsg vboxModel
-
-        ( PullRightMsg pullRightMsg, PullRight pullRightModel ) ->
-            updatePullRight pullRightMsg pullRightModel
+        ( LayoutMsg layoutMsg, Layout layoutModel ) ->
+            let
+                ( newLayout, cmd ) =
+                    Layout.update update layoutMsg layoutModel
+            in
+                Layout newLayout ! [ Cmd.map LayoutMsg cmd ]
 
         ( TextMsg textMsg, Text textModel ) ->
-            updateText textMsg textModel
+            updatePane text textMsg textModel
 
         ( TextButtonMsg textButtonMsg, TextButton textButtonModel ) ->
-            updateTextButton textButtonMsg textButtonModel
+            updatePane textButton textButtonMsg textButtonModel
 
         _ ->
             model ! []
 
 
-updateVBox : Int -> Msg -> List Model -> ( Model, Cmd Msg )
-updateVBox i msg models =
-    let
-        updateModel j restModels =
-            case restModels of
-                head :: tail ->
-                    if j == i then
-                        let
-                            ( newModel, cmd ) =
-                                update msg head
-                        in
-                            (newModel :: tail) ! [ Cmd.map (VBoxMsg i) cmd ]
-                    else
-                        let
-                            ( newModels, cmd ) =
-                                updateModel (j + 1) tail
-                        in
-                            ( head :: newModels, cmd )
-
-                [] ->
-                    models ! []
-    in
-        let
-            ( newModels, cmd ) =
-                updateModel i models
-        in
-            VBox newModels ! [ cmd ]
-
-
-updatePullRight : Msg -> Model -> ( Model, Cmd Msg )
-updatePullRight msg model =
+updatePane : Pane msg model -> msg -> model -> ( Model, Cmd Msg )
+updatePane { update, makeModel, makeMsg } childMsg childModel =
     let
         ( newModel, cmd ) =
-            update msg model
+            update childMsg childModel
     in
-        PullRight newModel ! [ Cmd.map PullRightMsg cmd ]
-
-
-updateText : Text.Msg -> Text.Model -> ( Model, Cmd Msg )
-updateText msg model =
-    let
-        ( newModel, cmd ) =
-            Text.update msg model
-    in
-        Text newModel ! [ Cmd.map TextMsg cmd ]
-
-
-updateTextButton : TextButton.Msg -> TextButton.Model -> ( Model, Cmd Msg )
-updateTextButton msg model =
-    let
-        ( newModel, cmd ) =
-            TextButton.update msg model
-    in
-        TextButton newModel ! [ Cmd.map TextButtonMsg cmd ]
+        makeModel newModel ! [ Cmd.map makeMsg cmd ]
 
 
 view : Model -> Html Msg
 view model =
     case model of
-        VBox vboxModel ->
-            viewVBox vboxModel
-
-        PullRight pullRightModel ->
-            viewPullRight pullRightModel
+        Layout layoutModel ->
+            layoutModel |> Layout.view view |> Html.map LayoutMsg
 
         Text textModel ->
-            viewText textModel
+            viewPane text textModel
 
         TextButton textButtonModel ->
-            viewTextButton textButtonModel
+            viewPane textButton textButtonModel
 
         Unknown ->
             div [] []
 
 
-viewVBox : VBoxModel -> Html Msg
-viewVBox models =
-    let
-        viewRec i restModel =
-            case restModel of
-                head :: tail ->
-                    let
-                        row =
-                            div [ class "row" ] [ view head ]
-                    in
-                        (Html.map (VBoxMsg i) row) :: viewRec (i + 1) tail
-
-                [] ->
-                    []
-    in
-        div [ class "container" ] <| viewRec 0 models
-
-
-viewPullRight : Model -> Html Msg
-viewPullRight model =
-    div [ class "pull-right" ] [ Html.map PullRightMsg <| view model ]
-
-
-viewText : Text.Model -> Html Msg
-viewText model =
-    Html.map TextMsg <| Text.view model
-
-
-viewTextButton : TextButton.Model -> Html Msg
-viewTextButton model =
-    Html.map TextButtonMsg <| TextButton.view model
+viewPane : Pane msg model -> model -> Html Msg
+viewPane { view, makeMsg } childModel =
+    childModel |> view |> Html.map makeMsg
