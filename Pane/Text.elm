@@ -1,11 +1,13 @@
-module Text exposing (..)
+module Pane.Text exposing (..)
 
-import Html exposing (Html, h2)
+import Html exposing (..)
+import Html.Attributes as Attribs exposing (..)
 import Json.Decode as Json exposing (..)
 
 
 type alias Model =
     { text : String
+    , class : String
     }
 
 
@@ -15,9 +17,13 @@ type Msg
 
 decodeModel : Decoder Model
 decodeModel =
-    Json.map Model
+    Json.map2 makeModel
         (field "text" string)
+        (field "classes" (Json.list string))
 
+makeModel : String -> List String -> Model
+makeModel text classes =
+    Model text <| String.concat <| List.intersperse " " classes
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -27,6 +33,6 @@ update msg model =
 
 
 view : Model -> Html Msg
-view { text } =
-    h2 []
+view {text, class} =
+    div [ Attribs.class class ]
         [ Html.text text ]

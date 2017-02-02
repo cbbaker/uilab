@@ -3,10 +3,11 @@ module Layout exposing (..)
 import Html exposing (..)
 import Json.Decode as Json exposing (..)
 import Dict exposing (Dict)
-import VBox
-import HBox
-import PullRight
-
+import Layout.HBox
+import Layout.ListGroup
+import Layout.PullRight
+import Layout.Panel
+import Layout.VBox
 
 type alias Viewer uiMsg =
     List ( String, Html (Msg uiMsg) ) -> Html (Msg uiMsg)
@@ -29,9 +30,11 @@ type Msg uiMsg
 layouts : Dict String (Viewer uiMsg)
 layouts =
     Dict.fromList
-        [ ( "VBox", VBox.view )
-        , ( "HBox", HBox.view )
-        , ( "PullRight", PullRight.view )
+        [ ( "HBox", Layout.HBox.view )
+        , ( "ListGroup", Layout.ListGroup.view )
+        , ( "Panel", Layout.Panel.view )
+        , ( "PullRight", Layout.PullRight.view )
+        , ( "VBox", Layout.VBox.view )
         ]
 
 
@@ -66,7 +69,7 @@ updateChildren :
     -> uiMsg
     -> UIList ui
     -> ( UIList ui, Cmd (Msg uiMsg) )
-updateChildren uiUpdate key msg models =
+updateChildren uiUpdate updateKey msg models =
     let
         combine key ( newUI, newCmd ) ( uis, cmd ) =
             ( ( key, newUI ) :: uis
@@ -76,10 +79,10 @@ updateChildren uiUpdate key msg models =
                 ]
             )
 
-        update ( k, old ) result =
+        update ( key, old ) result =
             let
                 current =
-                    if k == key then
+                    if key == updateKey then
                         uiUpdate msg old
                     else
                         ( old, Cmd.none )

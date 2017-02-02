@@ -1,4 +1,4 @@
-module TextButton exposing (..)
+module Pane.TextButton exposing (..)
 
 import Html exposing (Html, input)
 import Html.Attributes as Attribs exposing (classList, type_)

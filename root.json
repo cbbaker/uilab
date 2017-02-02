@@ -1,24 +1,31 @@
 {
-    "type": "VBox",
+    "type": "Panel",
     "children": {
-        "row": {
-            "type": "HBox",
+        "heading": {
+            "type": "Title",
+            "text": "Listing things",
+            "level": 3,
+            "classes": ["panel-title"]
+        },
+        "body": {
+            "type": "VBox",
             "children": {
-                "pullRight": {
-                    "type": "PullRight",
+                "row": {
+                    "type": "HBox",
                     "children": {
-                        "createButton": {
-                            "type": "TextButton",
-                            "text": "Create new thing",
-                            "url": "/things",
-                            "method": "POST",
-                            "body": {"attrib": "value"}
+                        "pullRight": {
+                            "type": "PullRight",
+                            "children": {
+                                "createButton": {
+                                    "type": "TextButton",
+                                    "text": "Create new",
+                                    "url": "/things",
+                                    "method": "POST",
+                                    "body": {"attrib": "value"}
+                                }
+                            }
                         }
                     }
-                },
-                "title": {
-                    "type": "Text",
-                    "text": "Listing things"
                 }
             }
         }

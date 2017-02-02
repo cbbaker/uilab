@@ -1,4 +1,4 @@
-module HBox exposing (..)
+module Layout.VBox exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -6,4 +6,4 @@ import Html.Attributes exposing (..)
 
 view : List ( String, Html msg ) -> Html msg
 view =
-    div [ class "row" ] << List.map Tuple.second
+    div [ class "container" ] << List.map Tuple.second
