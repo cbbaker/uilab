@@ -3,11 +3,12 @@ module Layout exposing (..)
 import Html exposing (..)
 import Json.Decode as Json exposing (..)
 import Dict exposing (Dict)
-import Layout.HBox
-import Layout.ListGroup
-import Layout.PullRight
 import Layout.Panel
-import Layout.VBox
+import Layout.Container
+import Layout.Row
+import Layout.ListGroup
+import Layout.ListGroupItem
+import Layout.PullRight
 
 type alias Viewer uiMsg =
     List ( String, Html (Msg uiMsg) ) -> Html (Msg uiMsg)
@@ -30,11 +31,12 @@ type Msg uiMsg
 layouts : Dict String (Viewer uiMsg)
 layouts =
     Dict.fromList
-        [ ( "HBox", Layout.HBox.view )
+        [ ( "Panel", Layout.Panel.view )
+        , ( "Container", Layout.Container.view )
+        , ( "Row", Layout.Row.view )
         , ( "ListGroup", Layout.ListGroup.view )
-        , ( "Panel", Layout.Panel.view )
+        , ( "ListGroupItem", Layout.ListGroupItem.view )
         , ( "PullRight", Layout.PullRight.view )
-        , ( "VBox", Layout.VBox.view )
         ]
 
 

@@ -2,13 +2,15 @@ module Pane exposing (..)
 
 import Html exposing (..)
 import Json.Decode as Json exposing (..)
+import Pane.Link as Link
 import Pane.Text as Text
 import Pane.TextButton as TextButton
 import Pane.Title as Title
 
 
 type Model
-    = Text Text.Model
+    = Link Link.Model
+    | Text Text.Model
     | TextButton TextButton.Model
     | Title Title.Model
 
@@ -30,6 +32,11 @@ type alias Pane msg model =
     }
 
 
+link : Pane Link.Msg Link.Model
+link =
+    Pane Link.decodeModel Link LinkMsg Link.update Link.view
+
+
 text : Pane Text.Msg Text.Model
 text =
     Pane Text.decodeModel Text TextMsg Text.update Text.view
@@ -46,7 +53,8 @@ title =
 
 
 type Msg
-    = TextMsg Text.Msg
+    = LinkMsg Link.Msg
+    | TextMsg Text.Msg
     | TextButtonMsg TextButton.Msg
     | TitleMsg Title.Msg
 
@@ -54,6 +62,9 @@ type Msg
 decodeModel : String -> Decoder Model
 decodeModel type_ =
     case type_ of
+        "Link" ->
+            Json.map link.makeModel link.decoder
+
         "Text" ->
             Json.map text.makeModel text.decoder
 
@@ -70,6 +81,9 @@ decodeModel type_ =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model ) of
+        ( LinkMsg linkMsg, Link linkModel ) ->
+            updatePane link linkMsg linkModel
+
         ( TextMsg textMsg, Text textModel ) ->
             updatePane text textMsg textModel
 
@@ -92,6 +106,9 @@ updatePane { update, makeModel, makeMsg } childMsg childModel =
 view : Model -> Html Msg
 view model =
     case model of
+        Link linkModel ->
+            viewPane link linkModel
+
         Text textModel ->
             viewPane text textModel
 

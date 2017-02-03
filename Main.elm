@@ -1,13 +1,14 @@
 module Main exposing (..)
 
-import Html exposing (..)
+import Navigation exposing (program)
+import Html exposing (Html, h1, text)
 import Http
 import UI
 
 
 main : Program Never Model Msg
 main =
-    Html.program
+    Navigation.program UrlUpdate
         { init = init
         , view = view
         , update = update
@@ -23,18 +24,36 @@ type Model
 type Msg
     = Load (Result Http.Error UI.Model)
     | UIMsg UI.Msg
+    | UrlUpdate Navigation.Location
 
 
-init : ( Model, Cmd Msg )
-init =
-    Loading ! [ Http.send Load <| Http.get "/root.json" UI.decodeModel ]
+init : Navigation.Location -> ( Model, Cmd Msg )
+init {hash} =
+    getAjax hash Loading
+
+
+ajaxUrl : String -> String
+ajaxUrl hash =
+    let
+        tag =
+            if String.length (hash) > 1 then
+                String.dropLeft 1 hash
+            else
+                "root"
+    in
+        "/" ++ tag ++ ".json" |> (Debug.log "loading:")
+
+
+getAjax : String -> Model -> ( Model, Cmd Msg )
+getAjax hash model =
+    model ! [ Http.send Load <| Http.get (ajaxUrl hash) UI.decodeModel ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model ) of
         ( Load (Err err), Loading ) ->
-            (Debug.log "load failed" err) |> (always (model ! []))
+            (Debug.log "load failed" err) |> (always <| getAjax "" model)
 
         ( Load (Ok ui), _ ) ->
             Loaded ui ! []
@@ -45,6 +64,9 @@ update msg model =
                     UI.update uiMsg uiModel
             in
                 Loaded newUI ! [ Cmd.map UIMsg cmd ]
+
+        ( UrlUpdate {hash}, _ ) ->
+            getAjax hash model
 
         _ ->
             model ! []
