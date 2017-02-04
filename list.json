@@ -1,0 +1,78 @@
+{
+    "type": "Container",
+    "children": {
+        "panel": {
+            "type": "Panel",
+            "children": {
+                "heading": {
+                    "type": "Title",
+                    "text": "Listing items",
+                    "level": 3,
+                    "classes": ["panel-title"]
+                },
+                "body": {
+                    "type": "Container",
+                    "children": {
+                        "newButton": {
+                            "type": "Row",
+                            "children": {
+                                "pullRight": {
+                                    "type": "PullRight",
+                                    "children": {
+                                        "createButton": {
+                                            "type": "TextButton",
+                                            "text": "Create new",
+                                            "url": "/things",
+                                            "method": "POST",
+                                            "body": {"attrib": "value"}
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "list": {
+                            "type": "Row",
+                            "children": {
+                                "list": {
+                                    "type": "ListGroup",
+                                    "children": {
+                                        "item1" : {
+                                            "type": "ListGroupItem",
+                                            "children": {
+                                                "text": {
+                                                    "type": "Text",
+                                                    "classes": [],
+                                                    "text": "this is an item"
+                                                }
+                                            }
+                                        },
+                                        "item2" : {
+                                            "type": "ListGroupItem",
+                                            "children": {
+                                                "text": {
+                                                    "type": "Text",
+                                                    "classes": [],
+                                                    "text": "this is also an item"
+                                                }
+                                            }
+                                        },
+                                        "item3" : {
+                                            "type": "ListGroupItem",
+                                            "children": {
+                                                "text": {
+                                                    "type": "Text",
+                                                    "classes": [],
+                                                    "text": "this, too"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

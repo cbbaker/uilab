@@ -1,4 +1,4 @@
-module Layout.HBox exposing (..)
+module Layout.Row exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
