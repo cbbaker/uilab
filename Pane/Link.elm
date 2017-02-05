@@ -16,6 +16,11 @@ type Msg
     = Text String
 
 
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
+
+
 decodeModel : Decoder Model
 decodeModel =
     Json.map3 makeModel

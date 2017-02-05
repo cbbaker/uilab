@@ -6,4 +6,4 @@ import Html.Attributes exposing (..)
 
 view : List ( String, Html msg ) -> Html msg
 view =
-    ul [ class "list-group" ] << List.map Tuple.second
+    div [ class "list-group" ] << List.map Tuple.second

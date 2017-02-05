@@ -6,7 +6,7 @@
             "children": {
                 "heading": {
                     "type": "Title",
-                    "text": "Listing items",
+                    "text": "Listing rides",
                     "level": 3,
                     "classes": ["panel-title"]
                 },
@@ -22,9 +22,9 @@
                                         "createButton": {
                                             "type": "TextButton",
                                             "text": "Create new",
-                                            "url": "/things",
+                                            "url": "/rides",
                                             "method": "POST",
-                                            "body": {"attrib": "value"}
+                                            "body": {}
                                         }
                                     }
                                 }
@@ -36,33 +36,48 @@
                                 "list": {
                                     "type": "ListGroup",
                                     "children": {
-                                        "item1" : {
-                                            "type": "ListGroupItem",
-                                            "children": {
-                                                "text": {
-                                                    "type": "Text",
-                                                    "classes": [],
-                                                    "text": "this is an item"
+                                        "item801" : {
+                                            "type": "RideShow",
+                                            "date": "2/1/2017",
+                                            "duration": "60 min",
+                                            "power": "110 W",
+                                            "heart_rate": "128 BPM",
+                                            "efficiency": "0.859%",
+                                            "links": {
+                                                "edit": {
+                                                    "url": "/rides/801/edit",
+                                                    "method": "GET",
+                                                    "body": {}
                                                 }
                                             }
                                         },
-                                        "item2" : {
-                                            "type": "ListGroupItem",
-                                            "children": {
-                                                "text": {
-                                                    "type": "Text",
-                                                    "classes": [],
-                                                    "text": "this is also an item"
+                                        "item800" : {
+                                            "type": "RideShow",
+                                            "date": "1/30/2017",
+                                            "duration": "60 min",
+                                            "power": "108 W",
+                                            "heart_rate": "128 BPM",
+                                            "efficiency": "0.844%",
+                                            "links": {
+                                                "edit": {
+                                                    "url": "/rides/800/edit",
+                                                    "method": "GET",
+                                                    "body": {}
                                                 }
                                             }
                                         },
-                                        "item3" : {
-                                            "type": "ListGroupItem",
-                                            "children": {
-                                                "text": {
-                                                    "type": "Text",
-                                                    "classes": [],
-                                                    "text": "this, too"
+                                        "item798" : {
+                                            "type": "RideShow",
+                                            "date": "1/25/2017",
+                                            "duration": "60 min",
+                                            "power": "108 W",
+                                            "heart_rate": "130 BPM",
+                                            "efficiency": "0.831%",
+                                            "links": {
+                                                "edit": {
+                                                    "url": "/rides/798/edit",
+                                                    "method": "GET",
+                                                    "body": {}
                                                 }
                                             }
                                         }
