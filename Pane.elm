@@ -4,121 +4,191 @@ import Html exposing (..)
 import Json.Decode as Json exposing (..)
 import Pane.Link as Link
 import Pane.Text as Text
+import Pane.Flash as Flash
 import Pane.TextButton as TextButton
+import Pane.NewRideButton as NewRideButton
 import Pane.Title as Title
+import Pane.RideShow as RideShow
+import Pane.RideEdit as RideEdit
 
 
 type Model
-    = Link Link.Model
-    | Text Text.Model
-    | TextButton TextButton.Model
-    | Title Title.Model
+    = Link (Meta Link.Model Link.Msg) Link.Model
+    | Text (Meta Text.Model Text.Msg) Text.Model
+    | Flash (Meta Flash.Model Flash.Msg) Flash.Model
+    | TextButton (Meta TextButton.Model TextButton.Msg) TextButton.Model
+    | NewRideButton (Meta NewRideButton.Model NewRideButton.Msg) NewRideButton.Model
+    | Title (Meta Title.Model Title.Msg) Title.Model
+    | RideShow (Meta RideShow.Model RideShow.Msg) RideShow.Model
+    | RideEdit (Meta RideEdit.Model RideEdit.Msg) RideEdit.Model
 
 
-type alias PaneUpdater msg model =
+type alias MakeModel model msg =
+    Meta model msg -> model -> Model
+
+
+type alias MakeMsg msg =
+    msg -> Msg
+
+
+type alias Update model msg =
     msg -> model -> ( model, Cmd msg )
 
 
-type alias PaneViewer msg model =
+type alias View model msg =
     model -> Html msg
 
 
-type alias Pane msg model =
-    { decoder : Decoder model
-    , makeModel : model -> Model
-    , makeMsg : msg -> Msg
-    , update : PaneUpdater msg model
-    , view : PaneViewer msg model
-    }
-
-
-link : Pane Link.Msg Link.Model
-link =
-    Pane Link.decodeModel Link LinkMsg Link.update Link.view
-
-
-text : Pane Text.Msg Text.Model
-text =
-    Pane Text.decodeModel Text TextMsg Text.update Text.view
-
-
-textButton : Pane TextButton.Msg TextButton.Model
-textButton =
-    Pane TextButton.decodeModel TextButton TextButtonMsg TextButton.update TextButton.view
-
-
-title : Pane Title.Msg Title.Model
-title =
-    Pane Title.decodeModel Title TitleMsg Title.update Title.view
+type Meta model msg
+    = Meta (MakeModel model msg) (MakeMsg msg) (Update model msg) (View model msg)
 
 
 type Msg
     = LinkMsg Link.Msg
     | TextMsg Text.Msg
+    | FlashMsg Flash.Msg
     | TextButtonMsg TextButton.Msg
+    | NewRideButtonMsg NewRideButton.Msg
     | TitleMsg Title.Msg
+    | RideShowMsg RideShow.Msg
+    | RideEditMsg RideEdit.Msg
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    case model of
+        Link _ linkModel ->
+            linkModel |> Link.subscriptions |> Sub.map LinkMsg
+
+        Text _ textModel ->
+            textModel |> Text.subscriptions |> Sub.map TextMsg
+
+        Flash _ flashModel ->
+            flashModel |> Flash.subscriptions |> Sub.map FlashMsg
+
+        TextButton _ textButtonModel ->
+            textButtonModel |> TextButton.subscriptions |> Sub.map TextButtonMsg
+
+        NewRideButton _ newRideButtonModel ->
+            newRideButtonModel |> NewRideButton.subscriptions |> Sub.map NewRideButtonMsg
+
+        Title _ titleModel ->
+            titleModel |> Title.subscriptions |> Sub.map TitleMsg
+
+        RideShow _ rideShowModel ->
+            rideShowModel |> RideShow.subscriptions |> Sub.map RideShowMsg
+
+        RideEdit _ rideEditModel ->
+            rideEditModel |> RideEdit.subscriptions |> Sub.map RideEditMsg
 
 
 decodeModel : String -> Decoder Model
 decodeModel type_ =
     case type_ of
         "Link" ->
-            Json.map link.makeModel link.decoder
+            Json.map (Link (Meta Link LinkMsg Link.update Link.view))
+                Link.decodeModel
 
         "Text" ->
-            Json.map text.makeModel text.decoder
+            Json.map (Text (Meta Text TextMsg Text.update Text.view))
+                Text.decodeModel
+
+        "Flash" ->
+            Json.map (Flash (Meta Flash FlashMsg Flash.update Flash.view))
+                Flash.decodeModel
 
         "TextButton" ->
-            Json.map textButton.makeModel textButton.decoder
+            Json.map (TextButton (Meta TextButton TextButtonMsg TextButton.update TextButton.view))
+                TextButton.decodeModel
+
+        "NewRideButton" ->
+            Json.map (NewRideButton (Meta NewRideButton NewRideButtonMsg NewRideButton.update NewRideButton.view))
+                NewRideButton.decodeModel
 
         "Title" ->
-            Json.map title.makeModel title.decoder
+            Json.map (Title (Meta Title TitleMsg Title.update Title.view))
+                Title.decodeModel
+
+        "RideShow" ->
+            Json.map (RideShow (Meta RideShow RideShowMsg RideShow.update RideShow.view))
+                RideShow.decodeModel
+
+        "RideEdit" ->
+            Json.map (RideEdit (Meta RideEdit RideEditMsg RideEdit.update RideEdit.view))
+                RideEdit.decodeModel
 
         _ ->
-            Json.fail "not a pane"
+            Json.fail (Debug.log "unknown pane" type_)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model ) of
-        ( LinkMsg linkMsg, Link linkModel ) ->
-            updatePane link linkMsg linkModel
+        ( LinkMsg linkMsg, Link meta linkModel ) ->
+            updatePane linkMsg meta linkModel
 
-        ( TextMsg textMsg, Text textModel ) ->
-            updatePane text textMsg textModel
+        ( TextMsg textMsg, Text meta textModel ) ->
+            updatePane textMsg meta textModel
 
-        ( TextButtonMsg textButtonMsg, TextButton textButtonModel ) ->
-            updatePane textButton textButtonMsg textButtonModel
+        ( FlashMsg flashMsg, Flash meta flashModel ) ->
+            updatePane flashMsg meta flashModel
+
+        ( TextButtonMsg textButtonMsg, TextButton meta textButtonModel ) ->
+            updatePane textButtonMsg meta textButtonModel
+
+        ( NewRideButtonMsg newRideButtonMsg, NewRideButton meta newRideButtonModel ) ->
+            updatePane newRideButtonMsg meta newRideButtonModel
+
+        ( TitleMsg titleMsg, Title meta titleModel ) ->
+            updatePane titleMsg meta titleModel
+
+        ( RideShowMsg rideShowMsg, RideShow meta rideShowModel ) ->
+            updatePane rideShowMsg meta rideShowModel
+
+        ( RideEditMsg rideEditMsg, RideEdit meta rideEditModel ) ->
+            updatePane rideEditMsg meta rideEditModel
 
         _ ->
             model ! []
 
 
-updatePane : Pane msg model -> msg -> model -> ( Model, Cmd Msg )
-updatePane { update, makeModel, makeMsg } childMsg childModel =
+updatePane : msg -> Meta model msg -> model -> ( Model, Cmd Msg )
+updatePane childMsg (Meta makeModel makeMsg update view) model =
     let
         ( newModel, cmd ) =
-            update childMsg childModel
+            update childMsg model
     in
-        makeModel newModel ! [ Cmd.map makeMsg cmd ]
+        makeModel (Meta makeModel makeMsg update view) newModel ! [ Cmd.map makeMsg cmd ]
 
 
 view : Model -> Html Msg
 view model =
     case model of
-        Link linkModel ->
-            viewPane link linkModel
+        Link meta linkModel ->
+            viewPane meta linkModel
 
-        Text textModel ->
-            viewPane text textModel
+        Text meta textModel ->
+            viewPane meta textModel
 
-        TextButton textButtonModel ->
-            viewPane textButton textButtonModel
+        Flash meta flashModel ->
+            viewPane meta flashModel
 
-        Title titleModel ->
-            viewPane title titleModel
+        TextButton meta textButtonModel ->
+            viewPane meta textButtonModel
+
+        NewRideButton meta newRideButtonModel ->
+            viewPane meta newRideButtonModel
+
+        Title meta titleModel ->
+            viewPane meta titleModel
+
+        RideShow meta rideShowModel ->
+            viewPane meta rideShowModel
+
+        RideEdit meta rideEditModel ->
+            viewPane meta rideEditModel
 
 
-viewPane : Pane msg model -> model -> Html Msg
-viewPane { view, makeMsg } childModel =
+viewPane : Meta model msg -> model -> Html Msg
+viewPane (Meta _ makeMsg _ view) childModel =
     childModel |> view |> Html.map makeMsg

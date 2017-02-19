@@ -9,9 +9,11 @@ import Layout.Row
 import Layout.ListGroup
 import Layout.ListGroupItem
 import Layout.PullRight
+import PubSub
 
-type alias Viewer uiMsg =
-    List ( String, Html (Msg uiMsg) ) -> Html (Msg uiMsg)
+
+type alias Viewer ui uiMsg =
+    List ( String, Html (Msg ui uiMsg) ) -> Html (Msg ui uiMsg)
 
 
 type alias UIList ui =
@@ -19,16 +21,27 @@ type alias UIList ui =
 
 
 type alias Model ui uiMsg =
-    { view : Viewer uiMsg
+    { view : Viewer ui uiMsg
+    , subscriptions : Subscriptions ui
     , children : UIList ui
     }
 
 
-type Msg uiMsg
+type alias Subscriptions ui =
+    { insert : Maybe ( String, Decoder ui )
+    , update : Maybe ( String, Decoder ui )
+    , delete : Maybe String
+    }
+
+
+type Msg ui uiMsg
     = Msg String uiMsg
+    | Insert (List ( String, ui ))
+    | Update (List ( String, ui ))
+    | Delete (List String)
 
 
-layouts : Dict String (Viewer uiMsg)
+layouts : Dict String (Viewer ui uiMsg)
 layouts =
     Dict.fromList
         [ ( "Panel", Layout.Panel.view )
@@ -38,6 +51,42 @@ layouts =
         , ( "ListGroupItem", Layout.ListGroupItem.view )
         , ( "PullRight", Layout.PullRight.view )
         ]
+
+
+subscriptions : (ui -> Sub uiMsg) -> Model ui uiMsg -> Sub (Msg ui uiMsg)
+subscriptions uiSubscriptions model =
+    let
+        sub ( key, child ) =
+            child |> uiSubscriptions |> Sub.map (Msg key)
+
+        childSubs =
+            List.map sub model.children
+
+        insertSub =
+            case model.subscriptions.insert of
+                Just ( insertKey, decoder ) ->
+                    [ PubSub.subscribe insertKey <| decodeInsert decoder ]
+
+                Nothing ->
+                    []
+
+        updateSub =
+            case model.subscriptions.update of
+                Just ( updateKey, decoder ) ->
+                    [ PubSub.subscribe updateKey <| decodeUpdate decoder ]
+
+                Nothing ->
+                    []
+
+        deleteSub =
+            case model.subscriptions.delete of
+                Just deleteKey ->
+                    [ PubSub.subscribe deleteKey decodeDelete ]
+
+                Nothing ->
+                    []
+    in
+        Sub.batch (insertSub ++ updateSub ++ deleteSub ++ childSubs)
 
 
 decodeModel : String -> Decoder ui -> Decoder (Model ui uiMsg)
@@ -50,19 +99,71 @@ decodeModel type_ decodeUI =
             decodeChildren view decodeUI
 
 
-decodeChildren : Viewer uiMsg -> Decoder ui -> Decoder (Model ui uiMsg)
+decodeChildren : Viewer ui uiMsg -> Decoder ui -> Decoder (Model ui uiMsg)
 decodeChildren view decoder =
-    Json.map ((Model view) << List.reverse)
-        (field "children" (Json.keyValuePairs (lazy (\_ -> decoder))))
+    Json.map2 (Model view)
+        (oneOf
+            [ field "subscriptions" (decodeSubscriptions decoder)
+            , Json.succeed
+                (Subscriptions Nothing Nothing Nothing)
+            ]
+        )
+        (Json.map List.reverse (field "children" (Json.keyValuePairs (lazy (\_ -> decoder)))))
+
+
+decodeSubscriptions : Decoder ui -> Decoder (Subscriptions ui)
+decodeSubscriptions uiDecoder =
+    let
+        makeSub name =
+            ( name, uiDecoder )
+
+        decoder fieldName =
+            Json.maybe <| Json.map makeSub <| Json.field fieldName Json.string
+    in
+        Json.map3 Subscriptions
+            (decoder "insert")
+            (decoder "update")
+            (Json.maybe (Json.field "delete" Json.string))
+
+
+decodeInsert : Decoder ui -> Decoder (Msg ui uiMsg)
+decodeInsert uiDecoder =
+    Json.map Insert
+        (Json.keyValuePairs uiDecoder)
+
+
+decodeUpdate : Decoder ui -> Decoder (Msg ui uiMsg)
+decodeUpdate uiDecoder =
+    Json.map Update
+        (Json.keyValuePairs uiDecoder)
+
+
+decodeDelete : Decoder (Msg ui uiMsg)
+decodeDelete =
+    Json.map Delete
+        (Json.list Json.string)
 
 
 update :
     (uiMsg -> ui -> ( ui, Cmd uiMsg ))
-    -> Msg uiMsg
+    -> Msg ui uiMsg
     -> Model ui uiMsg
-    -> ( Model ui uiMsg, Cmd (Msg uiMsg) )
-update updateUI (Msg key msg) { view, children } =
-    Tuple.mapFirst (Model view) <| updateChildren updateUI key msg children
+    -> ( Model ui uiMsg, Cmd (Msg ui uiMsg) )
+update updateUI msg model =
+    case msg of
+        Msg key uiMsg ->
+            model.children
+                |> updateChildren updateUI key uiMsg
+                |> Tuple.mapFirst (\children -> { model | children = children })
+
+        Insert inserts ->
+            updateInserts (Debug.log "inserts" inserts) model
+
+        Update updates ->
+            model ! []
+
+        Delete deletes ->
+            updateDeletes deletes model
 
 
 updateChildren :
@@ -70,7 +171,7 @@ updateChildren :
     -> String
     -> uiMsg
     -> UIList ui
-    -> ( UIList ui, Cmd (Msg uiMsg) )
+    -> ( UIList ui, Cmd (Msg ui uiMsg) )
 updateChildren uiUpdate updateKey msg models =
     let
         combine key ( newUI, newCmd ) ( uis, cmd ) =
@@ -94,7 +195,19 @@ updateChildren uiUpdate updateKey msg models =
         List.foldr update ( [], Cmd.none ) models
 
 
-view : (model -> Html msg) -> Model model msg -> Html (Msg msg)
+updateInserts : List ( String, ui ) -> Model ui msg -> ( Model ui msg, Cmd (Msg ui msg) )
+updateInserts inserts model =
+    { model | children = inserts ++ model.children } ! []
+
+updateDeletes : List String -> Model ui msg -> ( Model ui msg, Cmd (Msg ui msg) )
+updateDeletes deletes model =
+    let
+        filter (key, _) =
+            not (List.member key deletes)
+    in
+        { model | children = List.filter filter model.children } ! []
+
+view : (ui -> Html msg) -> Model ui msg -> Html (Msg ui msg)
 view viewUI { view, children } =
     let
         viewChild child =

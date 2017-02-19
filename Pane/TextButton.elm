@@ -3,75 +3,56 @@ module Pane.TextButton exposing (..)
 import Html exposing (Html, input)
 import Html.Attributes as Attribs exposing (classList, type_)
 import Html.Events exposing (onClick)
-import Http
 import Json.Decode as Json exposing (..)
-
+import Actions
 
 type alias Model =
     { text : String
-    , url : String
-    , method : String
-    , body : Json.Value
-    , inProgress : Bool
+    , actions : Actions.Model
     }
 
 
 type Msg
-    = Press
-    | PressResult (Result Http.Error String)
+    = ActionsMsg Actions.Msg
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
 
 
 decodeModel : Decoder Model
 decodeModel =
-    map5 Model
+    map2 Model
         (field "text" string)
-        (field "url" string)
-        (field "method" string)
-        (field "body" Json.value)
-        (succeed False)
+        (field "actions" Actions.decodeModel)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Press ->
-            { model | inProgress = True }
-                ! if model.inProgress then
-                    []
-                  else
-                    [ ajax model ]
+        ActionsMsg actionsMsg ->
+            updateActions actionsMsg model
 
-        PressResult _ ->
-            { model | inProgress = False } ! []
-
-
-ajax : Model -> Cmd Msg
-ajax { url, method, body } =
+updateActions : Actions.Msg -> Model -> ( Model, Cmd Msg )
+updateActions actionsMsg model =
     let
-        request =
-            Http.request
-                { method = method
-                , headers = []
-                , url = url
-                , body = Http.jsonBody body
-                , expect = Http.expectString
-                , timeout = Nothing
-                , withCredentials = False
-                }
+        ( actions, cmds ) = Actions.update actionsMsg model.actions
     in
-        Http.send PressResult request
+        { model | actions = actions } ! [ Cmd.map ActionsMsg cmds ]
+
 
 
 view : Model -> Html Msg
-view { text, inProgress } =
+view { text, actions } =
     input
         [ type_ "button"
-        , onClick Press
+        , onClick <| ActionsMsg <| Actions.activate "press"
         , classList
             [ ( "btn", True )
             , ( "btn-large", True )
             , ( "btn-default", True )
-            , ( "active", inProgress )
+            , ( "active", Actions.inProgress "press" actions )
             ]
         , Attribs.value text
         ]

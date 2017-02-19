@@ -12,7 +12,7 @@ main =
         { init = init
         , view = view
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subscriptions
         }
 
 
@@ -27,8 +27,18 @@ type Msg
     | UrlUpdate Navigation.Location
 
 
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    case model of
+        Loading ->
+            Sub.none
+
+        Loaded uiModel ->
+            uiModel |> UI.subscriptions |> Sub.map UIMsg
+
+
 init : Navigation.Location -> ( Model, Cmd Msg )
-init {hash} =
+init { hash } =
     getAjax hash Loading
 
 
@@ -41,7 +51,7 @@ ajaxUrl hash =
             else
                 "root"
     in
-        "/" ++ tag ++ ".json" |> (Debug.log "loading:")
+        "/" ++ tag ++ ".json" |> (Debug.log "loading")
 
 
 getAjax : String -> Model -> ( Model, Cmd Msg )
@@ -56,7 +66,7 @@ update msg model =
             (Debug.log "load failed" err) |> (always <| getAjax "" model)
 
         ( Load (Ok ui), _ ) ->
-            Loaded ui ! []
+            Loaded (Debug.log "ui" ui) ! []
 
         ( UIMsg uiMsg, Loaded uiModel ) ->
             let
@@ -65,7 +75,7 @@ update msg model =
             in
                 Loaded newUI ! [ Cmd.map UIMsg cmd ]
 
-        ( UrlUpdate {hash}, _ ) ->
+        ( UrlUpdate { hash }, _ ) ->
             getAjax hash model
 
         _ ->

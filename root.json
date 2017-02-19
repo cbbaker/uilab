@@ -13,11 +13,22 @@
                 "row": {
                     "type": "Row",
                     "children": {
-                        "link": {
+                        "list": {
                             "type": "Link",
-                            "text": "List things",
+                            "text": "List rides",
                             "classes": [],
                             "url": "/index.html#list"
+                        }
+                    }
+                },
+                "row2": {
+                    "type": "Row",
+                    "children": {
+                        "editList": {
+                            "type": "Link",
+                            "text": "List rides with edit",
+                            "classes": [],
+                            "url": "/index.html#editList"
                         }
                     }
                 }

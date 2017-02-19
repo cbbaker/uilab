@@ -1,0 +1,407 @@
+{
+    "type": "Container",
+    "children": {
+        "panel": {
+            "type": "Panel",
+            "children": {
+                "heading": {
+                    "type": "Title",
+                    "text": "Listing rides",
+                    "level": 3,
+                    "classes": ["panel-title"]
+                },
+                "body": {
+                    "type": "Container",
+                    "children": {
+                        "flash": {
+                            "type": "Row",
+                            "children": {
+                                "flash": {
+                                    "type": "Flash"
+                                }
+                            }
+                        },
+                        "newButton": {
+                            "type": "Row",
+                            "children": {
+                                "pullRight": {
+                                    "type": "PullRight",
+                                    "children": {
+                                        "createButton": {
+                                            "type": "NewRideButton",
+                                            "text": "Create new",
+                                            "enabled": true,
+                                            "actions": {
+                                                "press": {
+                                                    "links": [],
+                                                    "publishes": [{
+                                                        "channel": "newRideButton",
+                                                        "payload": {
+                                                            "enabled": false
+                                                        }
+                                                    },{
+                                                        "channel": "insertRide",
+                                                        "payload": {
+                                                            "newItem": {
+                                                                "type": "Choice",
+                                                                "subscription": "newItem",
+                                                                "initial": "edit",
+                                                                "children": {
+                                                                    "show": {
+                                                                        "type": "RideShow",
+                                                                        "subscription": "newItemEdit",
+                                                                        "data": {
+                                                                            "user_id": 1,
+                                                                            "date": "2/1/2017",
+                                                                            "duration": 60,
+                                                                            "power": 110,
+                                                                            "heart_rate": 128,
+                                                                            "notes": ""
+                                                                        },
+                                                                        "actions": {
+                                                                            "edit": {
+                                                                                "links": [],
+                                                                                "publishes": [{
+                                                                                    "channel": "newItem",
+                                                                                    "payload": "edit"
+                                                                                }, {
+                                                                                    "channel": "newItemShow"
+                                                                                }]
+                                                                            }
+                                                                        }
+                                                                    },
+                                                                    "edit": {
+                                                                        "type": "RideEdit",
+                                                                        "subscription": "newItemShow",
+                                                                        "data": {
+                                                                            "user_id": 1,
+                                                                            "date": "2/1/2017",
+                                                                            "duration": 60,
+                                                                            "power": 110,
+                                                                            "heart_rate": 128,
+                                                                            "notes": ""
+                                                                        },
+                                                                        "actions": {
+                                                                            "cancel": {
+                                                                                "links": [],
+                                                                                "publishes": [{
+                                                                                    "channel": "deleteRide",
+                                                                                    "payload": ["newItem"]
+                                                                                }]
+                                                                            },
+                                                                            "update": {
+                                                                                "links": [{
+                                                                                    "url": "/rides",
+                                                                                    "method": "POST",
+                                                                                    "body": {}
+                                                                                }],
+                                                                                "publishes": [
+                                                                                    {
+                                                                                        "channel": "newItemEdit"
+                                                                                    },
+                                                                                    {
+                                                                                        "channel": "newItem",
+                                                                                        "payload": "show"
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }]
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "list": {
+                            "type": "Row",
+                            "children": {
+                                "list": {
+                                    "type": "ListGroup",
+                                    "subscriptions": {
+                                        "insert": "insertRide",
+                                        "delete": "deleteRide"
+                                    },
+                                    "children": {
+                                        "item801" : {
+                                            "type": "Choice",
+                                            "subscription": "item801",
+                                            "initial": "show",
+                                            "children": {
+                                                "show": {
+                                                    "type": "RideShow",
+                                                    "subscription": "item801Edit",
+                                                    "data": {
+                                                        "user_id": 1,
+                                                        "date": "2/1/2017",
+                                                        "duration": 60,
+                                                        "power": 110,
+                                                        "heart_rate": 128,
+                                                        "notes": ""
+                                                    },
+                                                    "actions": {
+                                                        "edit": {
+                                                            "links": [],
+                                                            "publishes": [{
+                                                                "channel": "item801",
+                                                                "payload": "edit"
+                                                            }, {
+                                                                "channel": "item801Show"
+                                                            }]
+                                                        },
+                                                        "delete": {
+                                                            "links": [{
+                                                                "url": "/rides/801",
+                                                                "method": "DELETE",
+                                                                "body": {}
+                                                            }],
+                                                            "publishes": [{
+                                                                "channel": "deleteRide",
+                                                                "payload": ["item801"]
+                                                            }]
+                                                        }
+                                                    }
+                                                },
+                                                "edit": {
+                                                    "type": "RideEdit",
+                                                    "subscription": "item801Show",
+                                                    "data": {
+                                                        "user_id": 1,
+                                                        "date": "2/1/2017",
+                                                        "duration": 60,
+                                                        "power": 110,
+                                                        "heart_rate": 128,
+                                                        "notes": ""
+                                                    },
+                                                    "actions": {
+                                                        "cancel": {
+                                                            "links": [],
+                                                            "publishes": [{
+                                                                "channel": "item801",
+                                                                "payload": "show"
+                                                            }]
+                                                        },
+                                                        "update": {
+                                                            "links": [{
+                                                                "url": "/rides/801",
+                                                                "method": "PUT",
+                                                                "body": {}
+                                                            }],
+                                                            "publishes": [
+                                                                {
+                                                                    "channel": "item801Edit"
+                                                                },
+                                                                {
+                                                                    "channel": "item801",
+                                                                    "payload": "show"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "delete": {
+                                                            "links": [{
+                                                                "url": "/rides/801",
+                                                                "method": "DELETE",
+                                                                "body": {}
+                                                            }],
+                                                            "publishes": [{
+                                                                "channel": "deleteRide",
+                                                                "payload": ["item801"]
+                                                            }]
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "item800" : {
+                                            "type": "Choice",
+                                            "subscription": "item800",
+                                            "initial": "show",
+                                            "children": {
+                                                "show": {
+                                                    "type": "RideShow",
+                                                    "subscription": "item800Edit",
+                                                    "data": {
+                                                        "user_id": 1,
+                                                        "date": "1/31/2017",
+                                                        "duration": 60,
+                                                        "power": 108,
+                                                        "heart_rate": 128,
+                                                        "notes": ""
+                                                    },
+                                                    "actions": {
+                                                        "edit": {
+                                                            "links": [],
+                                                            "publishes": [{
+                                                                "channel": "item800",
+                                                                "payload": "edit"
+                                                            }, {
+                                                                "channel": "item800Show"
+                                                            }]
+                                                        },
+                                                        "delete": {
+                                                            "links": [{
+                                                                "url": "/rides/800",
+                                                                "method": "DELETE",
+                                                                "body": {}
+                                                            }],
+                                                            "publishes": [{
+                                                                "channel": "deleteRide",
+                                                                "payload": ["item800"]
+                                                            }]
+                                                        }
+                                                    }
+                                                },
+                                                "edit": {
+                                                    "type": "RideEdit",
+                                                    "subscription": "item800Show",
+                                                    "data": {
+                                                        "user_id": 1,
+                                                        "date": "1/31/2017",
+                                                        "duration": 60,
+                                                        "power": 108,
+                                                        "heart_rate": 128,
+                                                        "notes": ""
+                                                    },
+                                                    "actions": {
+                                                        "cancel": {
+                                                            "links": [],
+                                                            "publishes": [{
+                                                                "channel": "item800",
+                                                                "payload": "show"
+                                                            }]
+                                                        },
+                                                        "update": {
+                                                            "links": [{
+                                                                "url": "/rides/800",
+                                                                "method": "PUT",
+                                                                "body": {}
+                                                            }],
+                                                            "publishes": [
+                                                                {
+                                                                    "channel": "item800Edit"
+                                                                },
+                                                                {
+                                                                    "channel": "item800",
+                                                                    "payload": "show"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "delete": {
+                                                            "links": [{
+                                                                "url": "/rides/800",
+                                                                "method": "DELETE",
+                                                                "body": {}
+                                                            }],
+                                                            "publishes": [{
+                                                                "channel": "deleteRide",
+                                                                "payload": ["item800"]
+                                                            }]
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "item798" : {
+                                            "type": "Choice",
+                                            "subscription": "item798",
+                                            "initial": "show",
+                                            "children": {
+                                                "show": {
+                                                    "type": "RideShow",
+                                                    "subscription": "item798Edit",
+                                                    "data": {
+                                                        "user_id": 1,
+                                                        "date": "1/25/2017",
+                                                        "duration": 60,
+                                                        "power": 108,
+                                                        "heart_rate": 130,
+                                                        "notes": ""
+                                                    },
+                                                    "actions": {
+                                                        "edit": {
+                                                            "links": [],
+                                                            "publishes": [{
+                                                                "channel": "item798",
+                                                                "payload": "edit"
+                                                            }, {
+                                                                "channel": "item798Show"
+                                                            }]
+                                                        },
+                                                        "delete": {
+                                                            "links": [{
+                                                                "url": "/rides/798",
+                                                                "method": "DELETE",
+                                                                "body": {}
+                                                            }],
+                                                            "publishes": [{
+                                                                "channel": "deleteRide",
+                                                                "payload": ["item798"]
+                                                            }]
+                                                        }
+                                                    }
+                                                },
+                                                "edit": {
+                                                    "type": "RideEdit",
+                                                    "subscription": "item798Show",
+                                                    "data": {
+                                                        "user_id": 1,
+                                                        "date": "1/25/2017",
+                                                        "duration": 60,
+                                                        "power": 108,
+                                                        "heart_rate": 130,
+                                                        "notes": ""
+                                                    },
+                                                    "actions": {
+                                                        "cancel": {
+                                                            "links": [],
+                                                            "publishes": [{
+                                                                "channel": "item798",
+                                                                "payload": "show"
+                                                            }]
+                                                        },
+                                                        "update": {
+                                                            "links": [{
+                                                                "url": "/rides/798",
+                                                                "method": "PUT",
+                                                                "body": {}
+                                                            }],
+                                                            "publishes": [
+                                                                {
+                                                                    "channel": "item798Edit"
+                                                                },
+                                                                {
+                                                                    "channel": "item798",
+                                                                    "payload": "show"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "delete": {
+                                                            "links": [{
+                                                                "url": "/rides/798",
+                                                                "method": "DELETE",
+                                                                "body": {}
+                                                            }],
+                                                            "publishes": [{
+                                                                "channel": "deleteRide",
+                                                                "payload": ["item798"]
+                                                            }]
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

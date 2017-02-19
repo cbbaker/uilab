@@ -15,15 +15,22 @@ type Msg
     = Text String
 
 
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
+
+
 decodeModel : Decoder Model
 decodeModel =
     Json.map2 makeModel
         (field "text" string)
         (field "classes" (Json.list string))
 
+
 makeModel : String -> List String -> Model
 makeModel text classes =
     Model text <| String.concat <| List.intersperse " " classes
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -33,6 +40,6 @@ update msg model =
 
 
 view : Model -> Html Msg
-view {text, class} =
+view { text, class } =
     div [ Attribs.class class ]
         [ Html.text text ]
