@@ -50,7 +50,7 @@ like this:
       subscribe "itemList" Echo
 
 -}
-subscribe : String -> (Json.Decoder msg) -> Sub msg
+subscribe : String -> Json.Decoder msg -> Sub msg
 subscribe channel tagger =
     subscription (Subscribe channel tagger)
 
@@ -102,27 +102,26 @@ onEffects router cmds subs _ =
     let
         subsDict =
             buildSubDict (Debug.log "onEffects: subs" subs) Dict.empty
+
+        processCmds cmds =
+            case cmds of
+                [] ->
+                    Task.succeed subsDict
+
+                (Publish name msg) :: rest ->
+                    let
+                        sends =
+                            Dict.get name subsDict
+                                |> Maybe.withDefault []
+                                |> createSends router msg
+                    in
+                        (Task.sequence sends &> processCmds rest) |> Debug.log "tasks"
     in
-        processCmds router (Debug.log "onEffects: cmds" cmds) subsDict
+        processCmds (Debug.log "onEffects: cmds" cmds)
 
 
-processCmds : Platform.Router msg Msg -> List (MyCmd msg) -> SubsDict msg -> Task x (SubsDict msg)
-processCmds router cmds dict =
-    case cmds of
-        [] ->
-            Task.succeed dict
-
-        (Publish name msg) :: rest ->
-            let
-                sends =
-                    Dict.get name dict
-                        |> Maybe.withDefault []
-                        |> createSends router msg
-            in
-                (Task.sequence sends &> processCmds router rest dict) |> Debug.log "tasks"
-
-createSends
-    : Platform.Router msg Msg
+createSends :
+    Platform.Router msg Msg
     -> Json.Value
     -> List (Json.Decoder msg)
     -> List (Platform.Task x ())
@@ -135,6 +134,7 @@ createSends router value decoders =
 
                 Err err ->
                     (Debug.log "decoder error" err) |> (\_ -> createSends router value rest)
+
         _ ->
             []
 
