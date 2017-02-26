@@ -23,6 +23,7 @@ type alias Link =
     , url : String
     , method : String
     , body : Dec.Value
+    , success : String
     }
 
 
@@ -39,7 +40,7 @@ type Payload
 
 type Msg
     = Click String (Maybe Dec.Value)
-    | ClickResult String Int (Result Http.Error String)
+    | ClickResult String Int (Result Http.Error Dec.Value)
 
 
 activate : String -> Msg
@@ -80,10 +81,11 @@ decodeActions =
 
 decodeLink : Decoder Link
 decodeLink =
-    Dec.map3 (Link False)
+    Dec.map4 (Link False)
         (field "url" Dec.string)
         (field "method" Dec.string)
         (field "body" Dec.value)
+        (field "success" Dec.string)
 
 
 decodePublish : Decoder Publish
@@ -107,8 +109,8 @@ update msg model =
         Click which payload ->
             updateActions which model payload
 
-        ClickResult which index _ ->
-            updateClickResult which index model
+        ClickResult which index result ->
+            updateClickResult which index model result
 
 
 updateActions : String -> Model -> Maybe Dec.Value -> ( Model, Cmd Msg )
@@ -163,7 +165,7 @@ followLink which index link =
                 , headers = []
                 , url = link.url
                 , body = Http.jsonBody link.body
-                , expect = Http.expectString
+                , expect = Http.expectJson Dec.value
                 , timeout = Nothing
                 , withCredentials = False
                 }
@@ -185,13 +187,13 @@ updatePublishes publishes override =
         publishes |> List.map publish |> Cmd.batch
 
 
-updateClickResult : String -> Int -> Model -> ( Model, Cmd Msg )
-updateClickResult which index model =
+updateClickResult : String -> Int -> Model -> Result Http.Error Dec.Value -> ( Model, Cmd Msg )
+updateClickResult which index model result =
     let
         update action =
             let
-                newLinks =
-                    linkResult index action.links
+                (newLinks, cmd) =
+                    linkResult index result action.links
             in
                 { model
                     | actions =
@@ -200,19 +202,29 @@ updateClickResult which index model =
                             { action | links = newLinks }
                             model.actions
                 }
-                    ! []
+                    ! [ cmd ]
     in
         Dict.get which model.actions |> Maybe.map update |> Maybe.withDefault (model ! [])
 
+maybePublishResponse : Link -> Result Http.Error Dec.Value -> List (Cmd Msg)
+maybePublishResponse {success} result =
+    case result of
+        Ok value ->
+            [ PubSub.publish success value ]
 
-linkResult : Int -> List Link -> List Link
-linkResult index links =
-    case links of
-        link :: rest ->
-            if index == 0 then
-                { link | inProgress = False } :: rest
+        Err error ->
+            Debug.log "http error" error |> always []
+    
+
+linkResult : Int -> Result Http.Error Dec.Value -> List Link -> (List Link, Cmd Msg)
+linkResult index value =
+    let
+        process i link =
+            if i == index then
+                ( { link | inProgress = False }, maybePublishResponse link value )
             else
-                link :: linkResult (index - 1) rest
-
-        [] ->
-            []
+                ( link, [] )
+    in
+        List.indexedMap process
+            >> List.unzip
+            >> Tuple.mapSecond (List.concat >> Cmd.batch)

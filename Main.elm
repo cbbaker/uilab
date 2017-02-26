@@ -3,12 +3,20 @@ module Main exposing (..)
 import Navigation exposing (program)
 import Html exposing (Html, h1, text)
 import Http
-import UI
+import Json.Decode exposing (..)
+
+import UI.Types as UI
+import UI.Subscriptions as UI
+import UI.Decoders as UI
+import UI.Updaters as UI
+import UI.Viewers as UI
+import Layout
+import Pane
 
 
-main : Program Never Model Msg
+main : Program Value Model Msg
 main =
-    Navigation.program UrlUpdate
+    Navigation.programWithFlags UrlUpdate
         { init = init
         , view = view
         , update = update
@@ -18,12 +26,12 @@ main =
 
 type Model
     = Loading
-    | Loaded UI.Model
+    | Loaded (UI.Model Pane.Model Pane.Msg)
 
 
 type Msg
-    = Load (Result Http.Error UI.Model)
-    | UIMsg UI.Msg
+    = Load (Result Http.Error (UI.Model Pane.Model Pane.Msg))
+    | UIMsg (UI.Msg Pane.Model Pane.Msg)
     | UrlUpdate Navigation.Location
 
 
@@ -34,12 +42,20 @@ subscriptions model =
             Sub.none
 
         Loaded uiModel ->
-            uiModel |> UI.subscriptions |> Sub.map UIMsg
+            uiModel |> UI.subscriptions Layout.layouts Pane.decodeModel Pane.subscriptions |> Sub.map UIMsg
 
+uiDecoder : Decoder (UI.Model Pane.Model Pane.Msg)
+uiDecoder =
+    UI.decodeModel Layout.layouts Pane.decodeModel
 
-init : Navigation.Location -> ( Model, Cmd Msg )
-init { hash } =
-    getAjax hash Loading
+init : Value -> Navigation.Location -> ( Model, Cmd Msg )
+init value { hash } =
+    case decodeValue uiDecoder value of
+        Ok ui ->
+            Loaded ui ! []
+
+        Err err ->
+            (Debug.log "error parsing flags" err) |> always (getAjax hash Loading)
 
 
 ajaxUrl : String -> String
@@ -56,13 +72,13 @@ ajaxUrl hash =
 
 getAjax : String -> Model -> ( Model, Cmd Msg )
 getAjax hash model =
-    model ! [ Http.send Load <| Http.get (ajaxUrl hash) UI.decodeModel ]
+    model ! [ Http.send Load <| Http.get (ajaxUrl hash) uiDecoder ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model ) of
-        ( Load (Err err), Loading ) ->
+        ( Load (Err err), _ ) ->
             (Debug.log "load failed" err) |> (always <| getAjax "" model)
 
         ( Load (Ok ui), _ ) ->
@@ -71,7 +87,7 @@ update msg model =
         ( UIMsg uiMsg, Loaded uiModel ) ->
             let
                 ( newUI, cmd ) =
-                    UI.update uiMsg uiModel
+                    UI.update Pane.update uiMsg uiModel
             in
                 Loaded newUI ! [ Cmd.map UIMsg cmd ]
 
@@ -89,4 +105,4 @@ view model =
             h1 [] [ text "loading..." ]
 
         Loaded ui ->
-            Html.map UIMsg <| UI.view ui
+            Html.map UIMsg <| UI.view Pane.view ui

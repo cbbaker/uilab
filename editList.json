@@ -93,7 +93,8 @@
                                                                                 "links": [{
                                                                                     "url": "/rides",
                                                                                     "method": "POST",
-                                                                                    "body": {}
+                                                                                    "body": {},
+                                                                                    "success": "newItemUpdate"
                                                                                 }],
                                                                                 "publishes": [
                                                                                     {
@@ -158,7 +159,8 @@
                                                             "links": [{
                                                                 "url": "/rides/801",
                                                                 "method": "DELETE",
-                                                                "body": {}
+                                                                "body": {},
+                                                                "success": "item801Delete"
                                                             }],
                                                             "publishes": [{
                                                                 "channel": "deleteRide",
@@ -190,7 +192,8 @@
                                                             "links": [{
                                                                 "url": "/rides/801",
                                                                 "method": "PUT",
-                                                                "body": {}
+                                                                "body": {},
+                                                                "success": "item801Update"
                                                             }],
                                                             "publishes": [
                                                                 {
@@ -206,7 +209,8 @@
                                                             "links": [{
                                                                 "url": "/rides/801",
                                                                 "method": "DELETE",
-                                                                "body": {}
+                                                                "body": {},
+                                                                "success": "item801Delete"
                                                             }],
                                                             "publishes": [{
                                                                 "channel": "deleteRide",
@@ -247,7 +251,8 @@
                                                             "links": [{
                                                                 "url": "/rides/800",
                                                                 "method": "DELETE",
-                                                                "body": {}
+                                                                "body": {},
+                                                                "success": "item800Delete"
                                                             }],
                                                             "publishes": [{
                                                                 "channel": "deleteRide",
@@ -279,7 +284,8 @@
                                                             "links": [{
                                                                 "url": "/rides/800",
                                                                 "method": "PUT",
-                                                                "body": {}
+                                                                "body": {},
+                                                                "success": "item800Update"
                                                             }],
                                                             "publishes": [
                                                                 {
@@ -295,7 +301,8 @@
                                                             "links": [{
                                                                 "url": "/rides/800",
                                                                 "method": "DELETE",
-                                                                "body": {}
+                                                                "body": {},
+                                                                "success": "item800Delete"
                                                             }],
                                                             "publishes": [{
                                                                 "channel": "deleteRide",
@@ -336,7 +343,8 @@
                                                             "links": [{
                                                                 "url": "/rides/798",
                                                                 "method": "DELETE",
-                                                                "body": {}
+                                                                "body": {},
+                                                                "success": "item798Delete"
                                                             }],
                                                             "publishes": [{
                                                                 "channel": "deleteRide",
@@ -368,7 +376,8 @@
                                                             "links": [{
                                                                 "url": "/rides/798",
                                                                 "method": "PUT",
-                                                                "body": {}
+                                                                "body": {},
+                                                                "success": "item798Update"
                                                             }],
                                                             "publishes": [
                                                                 {
@@ -384,7 +393,8 @@
                                                             "links": [{
                                                                 "url": "/rides/798",
                                                                 "method": "DELETE",
-                                                                "body": {}
+                                                                "body": {},
+                                                                "success": "item798Delete"
                                                             }],
                                                             "publishes": [{
                                                                 "channel": "deleteRide",
