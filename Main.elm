@@ -58,21 +58,25 @@ init value { hash } =
             (Debug.log "error parsing flags" err) |> always (getAjax hash Loading)
 
 
-ajaxUrl : String -> String
+ajaxUrl : String -> Maybe String
 ajaxUrl hash =
-    let
-        tag =
-            if String.length (hash) > 1 then
-                String.dropLeft 1 hash
-            else
-                "root"
-    in
-        "/" ++ tag ++ ".json" |> (Debug.log "loading")
-
+    if String.length hash > 1 then
+        let 
+            tag = String.dropLeft 1 hash
+        in
+            "/" ++ tag |> (Debug.log "loading") |> Just
+    else
+        Nothing
 
 getAjax : String -> Model -> ( Model, Cmd Msg )
 getAjax hash model =
-    model ! [ Http.send Load <| Http.get (ajaxUrl hash) uiDecoder ]
+    case ajaxUrl hash of
+        Just url ->
+            model ! [ Http.send Load <| Http.get url uiDecoder ]
+        Nothing ->
+            model ! []
+                          
+    
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
