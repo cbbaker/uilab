@@ -38,7 +38,7 @@
                                     "children": {
                                         "item801" : {
                                             "type": "RideShow",
-                                            "date": "2/1/2017",
+                                            "started_at": "2/1/2017",
                                             "duration": "60 min",
                                             "power": "110 W",
                                             "heart_rate": "128 BPM",
@@ -53,7 +53,7 @@
                                         },
                                         "item800" : {
                                             "type": "RideShow",
-                                            "date": "1/30/2017",
+                                            "started_at": "1/30/2017",
                                             "duration": "60 min",
                                             "power": "108 W",
                                             "heart_rate": "128 BPM",
@@ -68,7 +68,7 @@
                                         },
                                         "item798" : {
                                             "type": "RideShow",
-                                            "date": "1/25/2017",
+                                            "started_at": "1/25/2017",
                                             "duration": "60 min",
                                             "power": "108 W",
                                             "heart_rate": "130 BPM",

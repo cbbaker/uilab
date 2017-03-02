@@ -35,7 +35,7 @@ type Validation
 
 type alias Data =
     { userId : Int
-    , date : Validated String
+    , started_at : Validated String
     , duration : Validated String
     , power : Validated String
     , heartRate : Validated String
@@ -55,7 +55,7 @@ decodeData : Decoder Data
 decodeData =
     Dec.map6 Data
         (field "user_id" Dec.int)
-        (field "date" decodeString)
+        (field "started_at" decodeString)
         (field "duration" decodeInt)
         (field "power" decodeInt)
         (field "heart_rate" decodeInt)
@@ -73,10 +73,10 @@ decodeString =
 
 
 encodeData : Data -> Enc.Value
-encodeData { userId, date, duration, power, heartRate, notes } =
+encodeData { userId, started_at, duration, power, heartRate, notes } =
     Enc.object
         [ ( "user_id", Enc.int userId )
-        , ( "date", Enc.string date.value )
+        , ( "started_at", Enc.string started_at.value )
         , ( "duration", encodeInt duration.value )
         , ( "power", encodeInt power.value )
         , ( "heart_rate", encodeInt heartRate.value )
@@ -91,7 +91,7 @@ encodeInt =
 
 type Msg
     = Update Data
-    | Date String
+    | StartedAt String
     | Duration String
     | Power String
     | HeartRate String
@@ -111,8 +111,8 @@ update msg model =
         Update data ->
             { model | data = data } ! []
 
-        Date date ->
-            updateDate date model
+        StartedAt started_at ->
+            updateDate started_at model
 
         Duration duration ->
             updateDuration duration model
@@ -134,12 +134,12 @@ update msg model =
 
 
 updateDate : String -> Model -> ( Model, Cmd Msg )
-updateDate date model =
+updateDate started_at model =
     let
         data =
             model.data
     in
-        updateData { data | date = validateNonempty date } model
+        updateData { data | started_at = validateNonempty started_at } model
 
 
 updateDuration : String -> Model -> ( Model, Cmd Msg )
@@ -225,7 +225,7 @@ view { data, actions } =
 viewEditing : Data -> Actions.Model -> Html Msg
 viewEditing data actions =
     Html.form [ class "list-group-item" ]
-        [ dateInput "date[date]" "Started at" data.date Date
+        [ dateInput "data[started_at]" "Started at" data.started_at StartedAt
         , numberInput "data[duration]" "Duration" data.duration Duration
         , numberInput "data[power]" "Power" data.power Power
         , numberInput "data[heart_rate]" "Heart rate" data.heartRate HeartRate
@@ -309,7 +309,7 @@ textAreaInput inputName labelText { value } tag =
 
 
 valid : Data -> Bool
-valid { date, duration, heartRate, power, notes } =
+valid { started_at, duration, heartRate, power, notes } =
     let
         valid { validation } =
             case validation of
@@ -319,7 +319,7 @@ valid { date, duration, heartRate, power, notes } =
                 _ ->
                     True
     in
-        List.all valid [ date, duration, heartRate, power, notes ]
+        List.all valid [ started_at, duration, heartRate, power, notes ]
 
 
 controls : Data -> Actions.Model -> Html Msg

@@ -18,7 +18,7 @@ type alias Model =
 
 type alias Data =
     { userId : Int
-    , date : String
+    , started_at : String
     , duration : Int
     , power : Int
     , heartRate : Int
@@ -38,7 +38,7 @@ decodeData : Decoder Data
 decodeData =
     Dec.map6 Data
         (field "user_id" Dec.int)
-        (field "date" Dec.string)
+        (field "started_at" Dec.string)
         (field "duration" Dec.int)
         (field "power" Dec.int)
         (field "heart_rate" Dec.int)
@@ -46,10 +46,10 @@ decodeData =
 
 
 encodeData : Data -> Enc.Value
-encodeData { userId, date, duration, power, heartRate, notes } =
+encodeData { userId, started_at, duration, power, heartRate, notes } =
     Enc.object
         [ ( "user_id", Enc.int userId )
-        , ( "date", Enc.string date )
+        , ( "started_at", Enc.string started_at )
         , ( "duration", Enc.int duration )
         , ( "power", Enc.int power )
         , ( "heart_rate", Enc.int heartRate )
@@ -104,7 +104,7 @@ view { data, actions } =
 viewShow : Data -> Actions.Model -> Html Msg
 viewShow data actions =
     let
-        { date, duration, power, heartRate, notes } =
+        { started_at, duration, power, heartRate, notes } =
             data
 
         formatDuration =
@@ -129,7 +129,7 @@ viewShow data actions =
             , onClickPreventDefault <| ActionsMsg <| Actions.activateWithModel "edit" <| encodeData data
             ]
             [ div [ class "row" ]
-                [ div [ class "col-xs-8 text-left" ] [ text date ]
+                [ div [ class "col-xs-8 text-left" ] [ text started_at ]
                 , div [ class "col-xs-4 text-right" ] [ text formatDuration ]
                 ]
             , div [ class "row" ]

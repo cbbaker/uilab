@@ -22,7 +22,7 @@ type alias Link =
     { inProgress : Bool
     , url : String
     , method : String
-    , body : Dec.Value
+    , payload : Payload
     , success : String
     }
 
@@ -61,6 +61,7 @@ inProgress key =
         >> Maybe.withDefault []
         >> List.any .inProgress
 
+
 member : String -> Model -> Bool
 member key =
     .actions >> Dict.member key
@@ -84,7 +85,7 @@ decodeLink =
     Dec.map4 (Link False)
         (field "url" Dec.string)
         (field "method" Dec.string)
-        (field "body" Dec.value)
+        decodePayload
         (field "success" Dec.string)
 
 
@@ -122,7 +123,7 @@ updateActions which model override =
             else
                 let
                     ( newLinks, linkCmd ) =
-                        updateLinks which links
+                        updateLinks which links override
 
                     publishCmd =
                         updatePublishes publishes override
@@ -138,15 +139,15 @@ updateActions which model override =
         Dict.get which model.actions |> Maybe.map update |> Maybe.withDefault (model ! [])
 
 
-updateLinks : String -> List Link -> ( List Link, Cmd Msg )
-updateLinks which oldLinks =
+updateLinks : String -> List Link -> Maybe Dec.Value -> ( List Link, Cmd Msg )
+updateLinks which oldLinks override =
     let
         rec oldLinks index newLinks newCmds =
             case oldLinks of
                 oldLink :: rest ->
                     let
                         ( newLink, newCmd ) =
-                            followLink which index oldLink
+                            followLink which index oldLink override
                     in
                         rec rest (index + 1) (newLink :: newLinks) (newCmd :: newCmds)
 
@@ -156,15 +157,23 @@ updateLinks which oldLinks =
         rec oldLinks 0 [] []
 
 
-followLink : String -> Int -> Link -> ( Link, Cmd Msg )
-followLink which index link =
+followLink : String -> Int -> Link -> Maybe Dec.Value -> ( Link, Cmd Msg )
+followLink which index link override =
     let
+        body =
+            case link.payload of
+                ModelPayload ->
+                    Maybe.withDefault (Enc.object []) override
+
+                PlainPayload payload ->
+                    payload
+
         request =
             Http.request
                 { method = link.method
                 , headers = []
                 , url = link.url
-                , body = Http.jsonBody link.body
+                , body = Http.jsonBody body
                 , expect = Http.expectJson Dec.value
                 , timeout = Nothing
                 , withCredentials = False
@@ -192,7 +201,7 @@ updateClickResult which index model result =
     let
         update action =
             let
-                (newLinks, cmd) =
+                ( newLinks, cmd ) =
                     linkResult index result action.links
             in
                 { model
@@ -206,17 +215,18 @@ updateClickResult which index model result =
     in
         Dict.get which model.actions |> Maybe.map update |> Maybe.withDefault (model ! [])
 
+
 maybePublishResponse : Link -> Result Http.Error Dec.Value -> List (Cmd Msg)
-maybePublishResponse {success} result =
+maybePublishResponse { success } result =
     case result of
         Ok value ->
             [ PubSub.publish success value ]
 
         Err error ->
             Debug.log "http error" error |> always []
-    
 
-linkResult : Int -> Result Http.Error Dec.Value -> List Link -> (List Link, Cmd Msg)
+
+linkResult : Int -> Result Http.Error Dec.Value -> List Link -> ( List Link, Cmd Msg )
 linkResult index value =
     let
         process i link =
