@@ -5,7 +5,6 @@ module UI.Subscriptions exposing (subscriptions)
 @docs subscriptions
 -}
 
-import Dict exposing (Dict)
 import Json.Decode as Json exposing (..)
 import UI.Types exposing (..)
 import UI.Decoders exposing (..)
@@ -17,8 +16,8 @@ function, and a UI, and returns the subscriptions.
 -}
 
 subscriptions :
-    Dict String (LayoutViewer pane paneMsg)
-    -> (String -> Decoder pane)
+    LayoutRegistry pane paneMsg
+    -> (String -> Environment -> Decoder pane)
     -> (pane -> Sub paneMsg)
     -> Model pane paneMsg
     -> Sub (Msg pane paneMsg)
@@ -35,8 +34,8 @@ subscriptions layouts decodePane paneSubscriptions model =
 
 
 layoutSubscriptions :
-    Dict String (LayoutViewer pane paneMsg)
-    -> (String -> Decoder pane)
+    LayoutRegistry pane paneMsg
+    -> (String -> Environment -> Decoder pane)
     -> (pane -> Sub paneMsg)
     -> LayoutType pane paneMsg
     -> Sub (LayoutMsgType pane paneMsg)
@@ -76,8 +75,8 @@ layoutSubscriptions layouts decodePane paneSubscriptions model =
 
 
 choiceSubscriptions :
-    Dict String (LayoutViewer pane paneMsg)
-    -> (String -> Decoder pane)
+    LayoutRegistry pane paneMsg
+    -> (String -> Environment -> Decoder pane)
     -> (pane -> Sub paneMsg)
     -> ChoiceType pane paneMsg
     -> Sub (ChoiceMsgType pane paneMsg)

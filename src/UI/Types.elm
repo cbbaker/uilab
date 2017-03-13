@@ -1,23 +1,28 @@
-module UI.Types exposing (Model(..)
-                         , LayoutType
-                         , LayoutViewer
-                         , Subscriptions
-                         , ChoiceType
-                         , Msg(..)
-                         , LayoutMsgType(..)
-                         , ChoiceMsgType(..)
-                         )
-
+module UI.Types
+    exposing
+        ( Model(..)
+        , LayoutType
+        , LayoutViewer
+        , LayoutRegistry
+        , Subscriptions
+        , ChoiceType
+        , Msg(..)
+        , LayoutMsgType(..)
+        , ChoiceMsgType(..)
+        )
 
 {-| UI.Types contains the model definitions for the recursive UI
 type. The Layout type needs to be in the same file because two Elm
 modules cannot import each other.
 
-@docs Model, LayoutType, LayoutViewer, Subscriptions, ChoiceType, Msg, LayoutMsgType, ChoiceMsgType
+@docs Model, LayoutType, LayoutViewer, LayoutRegistry, Subscriptions
+@docs ChoiceType, Msg, LayoutMsgType, ChoiceMsgType
 -}
 
 import Html exposing (..)
 import Json.Decode exposing (Decoder)
+import Dict exposing (Dict)
+
 
 {-| Recursive data type for UI elements.
 -}
@@ -42,6 +47,12 @@ type alias LayoutViewer pane paneMsg =
     List ( String, Html (LayoutMsgType pane paneMsg) ) -> Html (LayoutMsgType pane paneMsg)
 
 
+{-| A dictionary for looking up LayoutViewers
+-}
+type alias LayoutRegistry pane paneMsg =
+    Dict String (LayoutViewer pane paneMsg)
+
+
 {-| Subscriptions to update Layouts
 -}
 type alias Subscriptions pane paneMsg =
@@ -49,6 +60,7 @@ type alias Subscriptions pane paneMsg =
     , update : Maybe ( String, Decoder (Model pane paneMsg) )
     , delete : Maybe String
     }
+
 
 {-| A UI element with UI children that displays one of its children at
 a time.
@@ -75,6 +87,7 @@ type LayoutMsgType pane paneMsg
     | Insert (List ( String, Model pane paneMsg ))
     | Update (List ( String, Model pane paneMsg ))
     | Delete (List String)
+
 
 {-| Choice message type
 -}

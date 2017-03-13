@@ -1,68 +1,127 @@
-module UI.Decoders exposing (decodeModel, decodeLayoutInsert, decodeLayoutUpdate, decodeLayoutDelete)
+module UI.Decoders
+    exposing
+        ( decodeModel
+        , Environment
+        , empty
+        , bind
+        , lookup
+        , decodeLayoutInsert
+        , decodeLayoutUpdate
+        , decodeLayoutDelete
+        )
 
 {-| Decoders for the UI types
 
 @docs decodeModel, decodeLayoutInsert, decodeLayoutUpdate, decodeLayoutDelete
+@docs Environment, empty, bind, lookup
 -}
 
 import UI.Types exposing (..)
 import Json.Decode as Json exposing (..)
 import Dict exposing (Dict)
 
+
+{-| Environment that gets passed to the decoders to lookup variables
+-}
+type alias Environment =
+    List ( String, Value )
+
+
+{-| Create an empty environment
+-}
+empty : Environment
+empty =
+    []
+
+
+{-| Bind a new variable
+-}
+bind : String -> Value -> Environment -> Environment
+bind key value env =
+    ( key, value ) :: env
+
+
+{-| Look up a variable
+-}
+lookup : String -> Environment -> Maybe Value
+lookup key env =
+    case env of
+        [] ->
+            Nothing
+
+        ( k, v ) :: rest ->
+            if k == key then
+                Just v
+            else
+                lookup key rest
+
+
 {-| Parses JSON and returns a UI
 -}
-decodeModel : Dict String (LayoutViewer pane paneMsg) -> (String -> Decoder pane) -> Decoder (Model pane paneMsg)
-decodeModel layouts decodePane =
-    (field "type" string) |> andThen (decodeRest layouts decodePane)
+decodeModel :
+    LayoutRegistry pane paneMsg
+    -> (String -> Environment -> Decoder pane)
+    -> Environment
+    -> Decoder (Model pane paneMsg)
+decodeModel layouts decodePane env =
+    (field "type" string) |> andThen (decodeRest layouts decodePane env)
 
 
-decodeRest : Dict String (LayoutViewer pane paneMsg) -> (String -> Decoder pane) -> String -> Decoder (Model pane paneMsg)
-decodeRest layouts decodePane type_ =
+decodeRest :
+    LayoutRegistry pane paneMsg
+    -> (String -> Environment -> Decoder pane)
+    -> Environment
+    -> String
+    -> Decoder (Model pane paneMsg)
+decodeRest layouts decodePane env type_ =
     oneOf
-        [ Json.map Layout (decodeLayout layouts decodePane type_)
-        , Json.map Choice (decodeChoice layouts decodePane type_)
-        , Json.map Pane (decodePane type_)
+        [ Json.map Layout (decodeLayout layouts decodePane env type_)
+        , Json.map Choice (decodeChoice layouts decodePane env type_)
+        , Json.map Pane (decodePane type_ env)
         ]
 
 
 decodeLayout :
-    Dict String (LayoutViewer pane paneMsg)
-    -> (String -> Decoder pane)
+    LayoutRegistry pane paneMsg
+    -> (String -> Environment -> Decoder pane)
+    -> Environment
     -> String
     -> Decoder (LayoutType pane paneMsg)
-decodeLayout layouts decodePane type_ =
+decodeLayout layouts decodePane env type_ =
     case Dict.get type_ layouts of
         Nothing ->
             Json.fail "not a layout"
 
         Just viewer ->
-            decodeLayoutChildren layouts decodePane viewer
+            decodeLayoutChildren layouts decodePane viewer env
 
 
 decodeLayoutChildren :
-    Dict String (LayoutViewer pane paneMsg)
-    -> (String -> Decoder pane)
+    LayoutRegistry pane paneMsg
+    -> (String -> Environment -> Decoder pane)
     -> LayoutViewer pane paneMsg
+    -> Environment
     -> Decoder (LayoutType pane paneMsg)
-decodeLayoutChildren layouts decodePane viewer =
+decodeLayoutChildren layouts decodePane viewer env =
     Json.map2 (LayoutType viewer)
         (oneOf
-            [ field "subscriptions" <| decodeLayoutSubscriptions layouts decodePane
+            [ field "subscriptions" <| decodeLayoutSubscriptions layouts decodePane env
             , Json.succeed
                 (Subscriptions Nothing Nothing Nothing)
             ]
         )
-        (Json.map List.reverse (field "children" (Json.keyValuePairs (lazy (\_ -> decodeModel layouts decodePane)))))
+        (Json.map List.reverse (field "children" (Json.keyValuePairs (lazy (\_ -> decodeModel layouts decodePane env)))))
 
 
 decodeLayoutSubscriptions :
-    Dict String (LayoutViewer pane paneMsg)
-    -> (String -> Decoder pane)
+    LayoutRegistry pane paneMsg
+    -> (String -> Environment -> Decoder pane)
+    -> Environment
     -> Decoder (Subscriptions pane paneMsg)
-decodeLayoutSubscriptions layouts decodePane =
+decodeLayoutSubscriptions layouts decodePane env =
     let
         makeSub name =
-            ( name, decodeModel layouts decodePane )
+            ( name, decodeModel layouts decodePane env )
 
         decoder fieldName =
             Json.maybe <| Json.map makeSub <| Json.field fieldName Json.string
@@ -74,17 +133,18 @@ decodeLayoutSubscriptions layouts decodePane =
 
 
 decodeChoice :
-    Dict String (LayoutViewer pane paneMsg)
-    -> (String -> Decoder pane)
+    LayoutRegistry pane paneMsg
+    -> (String -> Environment -> Decoder pane)
+    -> Environment
     -> String
     -> Decoder (ChoiceType pane paneMsg)
-decodeChoice layouts decodePane type_ =
+decodeChoice layouts decodePane env type_ =
     case type_ of
         "Choice" ->
             Json.map3 ChoiceType
                 (maybe (field "subscription" Json.string))
                 (field "initial" Json.string)
-                (field "children" (Json.keyValuePairs (lazy (\_ -> decodeModel layouts decodePane))))
+                (field "children" (Json.keyValuePairs (lazy (\_ -> decodeModel layouts decodePane env))))
 
         _ ->
             Json.fail "not a choice"
@@ -93,23 +153,45 @@ decodeChoice layouts decodePane type_ =
 {-| Parses JSON and returns a layout insert message
 -}
 decodeLayoutInsert :
-    Dict String (LayoutViewer pane paneMsg)
-    -> (String -> Decoder pane)
+    LayoutRegistry pane paneMsg
+    -> (String -> Environment -> Decoder pane)
     -> Decoder (LayoutMsgType pane paneMsg)
 decodeLayoutInsert layouts decodePane =
-    Json.map Insert
-        (Json.keyValuePairs <| decodeModel layouts decodePane)
+    let
+        model =
+            (field "data" value)
+                |> andThen (\data ->
+                                let
+                                    env =
+                                        bind "data" data empty
+                                in
+                                    (field "template" <| decodeModel layouts decodePane env)
+                   )
+    in 
+        Json.map Insert
+            (Json.keyValuePairs model)
 
 
 {-| Parses JSON and returns a layout update message
 -}
 decodeLayoutUpdate :
-    Dict String (LayoutViewer pane paneMsg)
-    -> (String -> Decoder pane)
+    LayoutRegistry pane paneMsg
+    -> (String -> Environment -> Decoder pane)
     -> Decoder (LayoutMsgType pane paneMsg)
 decodeLayoutUpdate layouts decodePane =
-    Json.map Update
-        (Json.keyValuePairs <| decodeModel layouts decodePane)
+    let
+        model =
+            (field "data" value)
+                |> andThen (\data ->
+                                let
+                                    env =
+                                        bind "data" data empty
+                                in
+                                    (field "template" <| decodeModel layouts decodePane env)
+                   )
+    in 
+        Json.map Update
+            (Json.keyValuePairs model)
 
 
 {-| Parses JSON and returns a layout delete message

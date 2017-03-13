@@ -30,87 +30,83 @@
                                         "createButton": {
                                             "type": "NewRideButton",
                                             "text": "Create new",
+                                            "idPrefix": "newRide",
+                                            "defaults": {
+                                                "user_id": {
+                                                    "type": "const_int",
+                                                    "value": 1
+                                                },
+                                                "started_at": {
+                                                    "type": "current_time"
+                                                },
+                                                "duration": {
+                                                    "type": "last_create"
+                                                },
+                                                "power": {
+                                                    "type": "last_create"
+                                                },
+                                                "heart_rate": {
+                                                    "type": "last_create"
+                                                },
+                                                "notes": {
+                                                    "type": "const_string",
+                                                    "value": ""
+                                                }
+                                            },
+                                            "last": {
+                                                "user_id": 1,
+                                                "started_at": "2/1/2017",
+                                                "duration": 60,
+                                                "power": 110,
+                                                "heart_rate": 128,
+                                                "notes": ""
+                                            },
+                                            "template": {
+                                                "type": "Choice",
+                                                "subscription": "newItem",
+                                                "initial": "edit",
+                                                "children": {
+                                                    "edit": {
+                                                        "type": "RideEdit",
+                                                        "subscription": "newItemShow",
+                                                        "data": {
+                                                            "lookup": "data"
+                                                        },
+                                                        "actions": {
+                                                            "cancel": {
+                                                                "links": [],
+                                                                "publishes": [{
+                                                                    "channel": "deleteRide"
+                                                                }]
+                                                            },
+                                                            "update": {
+                                                                "links": [{
+                                                                    "url": "/rides",
+                                                                    "method": "POST",
+                                                                    "body": {},
+                                                                    "success": "newItemUpdate"
+                                                                }],
+                                                                "publishes": [
+                                                                    {
+                                                                        "channel": "newItemEdit"
+                                                                    },
+                                                                    {
+                                                                        "channel": "newItem",
+                                                                        "payload": "show"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
                                             "enabled": true,
                                             "actions": {
                                                 "press": {
                                                     "links": [],
                                                     "publishes": [{
                                                         "channel": "newRideButton",
-                                                        "payload": {
-                                                            "enabled": false
-                                                        }
-                                                    },{
-                                                        "channel": "insertRide",
-                                                        "payload": {
-                                                            "newItem": {
-                                                                "type": "Choice",
-                                                                "subscription": "newItem",
-                                                                "initial": "edit",
-                                                                "children": {
-                                                                    "show": {
-                                                                        "type": "RideShow",
-                                                                        "subscription": "newItemEdit",
-                                                                        "data": {
-                                                                            "user_id": 1,
-                                                                            "started_at": "2/1/2017",
-                                                                            "duration": 60,
-                                                                            "power": 110,
-                                                                            "heart_rate": 128,
-                                                                            "notes": ""
-                                                                        },
-                                                                        "actions": {
-                                                                            "edit": {
-                                                                                "links": [],
-                                                                                "publishes": [{
-                                                                                    "channel": "newItem",
-                                                                                    "payload": "edit"
-                                                                                }, {
-                                                                                    "channel": "newItemShow"
-                                                                                }]
-                                                                            }
-                                                                        }
-                                                                    },
-                                                                    "edit": {
-                                                                        "type": "RideEdit",
-                                                                        "subscription": "newItemShow",
-                                                                        "data": {
-                                                                            "user_id": 1,
-                                                                            "started_at": "2/1/2017",
-                                                                            "duration": 60,
-                                                                            "power": 110,
-                                                                            "heart_rate": 128,
-                                                                            "notes": ""
-                                                                        },
-                                                                        "actions": {
-                                                                            "cancel": {
-                                                                                "links": [],
-                                                                                "publishes": [{
-                                                                                    "channel": "deleteRide",
-                                                                                    "payload": ["newItem"]
-                                                                                }]
-                                                                            },
-                                                                            "update": {
-                                                                                "links": [{
-                                                                                    "url": "/rides",
-                                                                                    "method": "POST",
-                                                                                    "body": {},
-                                                                                    "success": "newItemUpdate"
-                                                                                }],
-                                                                                "publishes": [
-                                                                                    {
-                                                                                        "channel": "newItemEdit"
-                                                                                    },
-                                                                                    {
-                                                                                        "channel": "newItem",
-                                                                                        "payload": "show"
-                                                                                    }
-                                                                                ]
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
+                                                        "payload": {}
                                                     }]
                                                 }
                                             }

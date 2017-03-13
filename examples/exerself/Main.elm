@@ -46,7 +46,7 @@ subscriptions model =
 
 uiDecoder : Decoder (UI.Model Pane.Model Pane.Msg)
 uiDecoder =
-    UI.decodeModel Layout.layouts Pane.decodeModel
+    UI.decodeModel Layout.layouts Pane.decodeModel UI.empty
 
 init : Value -> Navigation.Location -> ( Model, Cmd Msg )
 init value { hash } =

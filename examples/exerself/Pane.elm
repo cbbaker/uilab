@@ -2,6 +2,7 @@ module Pane exposing (..)
 
 import Html exposing (..)
 import Json.Decode as Json exposing (..)
+import UI.Decoders exposing (..)
 import Pane.Link as Link
 import Pane.Text as Text
 import Pane.Flash as Flash
@@ -82,8 +83,8 @@ subscriptions model =
             rideEditModel |> RideEdit.subscriptions |> Sub.map RideEditMsg
 
 
-decodeModel : String -> Decoder Model
-decodeModel type_ =
+decodeModel : String -> Environment -> Decoder Model
+decodeModel type_ env =
     case type_ of
         "Link" ->
             Json.map (Link (Meta Link LinkMsg Link.update Link.view))
@@ -115,7 +116,7 @@ decodeModel type_ =
 
         "RideEdit" ->
             Json.map (RideEdit (Meta RideEdit RideEditMsg RideEdit.update RideEdit.view))
-                RideEdit.decodeModel
+                (RideEdit.decodeModel env)
 
         _ ->
             Json.fail (Debug.log "unknown pane" type_)

@@ -5,6 +5,7 @@ import Html.Attributes as Attribs exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Dec exposing (..)
 import Json.Encode as Enc exposing (..)
+import UI.Decoders exposing (..)
 import Actions
 import PubSub
 
@@ -40,26 +41,42 @@ type alias Data =
     , power : Validated String
     , heartRate : Validated String
     , notes : Validated String
+    , newRideId : Maybe String
     }
 
 
-decodeModel : Decoder Model
-decodeModel =
+decodeModel : Environment -> Decoder Model
+decodeModel env =
     Dec.map3 Model
         (field "subscription" Dec.string)
-        (field "data" decodeData)
+        (field "data" (maybeLookupData env))
         (field "actions" Actions.decodeModel)
+
+
+maybeLookupData : Environment -> Decoder Data
+maybeLookupData env =
+    case lookup "data" env of
+        Nothing ->
+            decodeData
+
+        Just value ->
+            case decodeValue decodeData value of
+                Ok data ->
+                    Dec.succeed data
+                Err _ ->
+                    decodeData
 
 
 decodeData : Decoder Data
 decodeData =
-    Dec.map6 Data
+    Dec.map7 Data
         (field "user_id" Dec.int)
         (field "started_at" decodeString)
         (field "duration" decodeInt)
         (field "power" decodeInt)
         (field "heart_rate" decodeInt)
         (field "notes" decodeString)
+        (maybe (field "newRideId" Dec.string))
 
 
 decodeInt : Decoder (Validated String)
@@ -366,17 +383,25 @@ controls data actions =
 
         cancelControl =
             if Actions.member "cancel" actions then
-                [ a
-                    [ href "#"
-                    , classList
-                        [ ( "btn", True )
-                        , ( "btn-default", True )
-                        , ( "active", Actions.inProgress "cancel" actions )
-                        ]
-                    , Attribs.attribute "role" "button"
-                    , clickEvent "cancel"
-                    ]
-                    [ text "back" ]
+                let
+                    click =
+                        case data.newRideId of
+                            Nothing ->
+                                clickEvent "cancel"
+
+                            Just newRideId ->
+                                clickEventWithModel "cancel" <| Enc.list [ Enc.string newRideId ]
+                in
+                    [ a
+                      [ href "#"
+                      , classList
+                            [ ( "btn", True )
+                            , ( "btn-default", True )
+                            , ( "active", Actions.inProgress "cancel" actions )
+                            ]
+                      , Attribs.attribute "role" "button"
+                      , click
+                      ] [ text "back" ]
                 ]
             else
                 []
