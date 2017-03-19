@@ -1,0 +1,93 @@
+{
+    "type": "Container",
+    "children": {
+        "panel": {
+            "type": "Panel",
+            "children": {
+                "heading": {
+                    "type": "Title",
+                    "text": "Listing rides",
+                    "level": 3,
+                    "classes": ["panel-title"]
+                },
+                "body": {
+                    "type": "Container",
+                    "children": {
+                        "newButton": {
+                            "type": "Row",
+                            "children": {
+                                "pullRight": {
+                                    "type": "PullRight",
+                                    "children": {
+                                        "createButton": {
+                                            "type": "TextButton",
+                                            "text": "Create new",
+                                            "url": "/rides",
+                                            "method": "POST",
+                                            "body": {}
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "list": {
+                            "type": "Row",
+                            "children": {
+                                "list": {
+                                    "type": "ListGroup",
+                                    "children": {
+                                        "item801" : {
+                                            "type": "RideShow",
+                                            "started_at": "2/1/2017",
+                                            "duration": "60 min",
+                                            "power": "110 W",
+                                            "heart_rate": "128 BPM",
+                                            "efficiency": "0.859%",
+                                            "links": {
+                                                "edit": {
+                                                    "url": "/rides/801/edit",
+                                                    "method": "GET",
+                                                    "body": {}
+                                                }
+                                            }
+                                        },
+                                        "item800" : {
+                                            "type": "RideShow",
+                                            "started_at": "1/30/2017",
+                                            "duration": "60 min",
+                                            "power": "108 W",
+                                            "heart_rate": "128 BPM",
+                                            "efficiency": "0.844%",
+                                            "links": {
+                                                "edit": {
+                                                    "url": "/rides/800/edit",
+                                                    "method": "GET",
+                                                    "body": {}
+                                                }
+                                            }
+                                        },
+                                        "item798" : {
+                                            "type": "RideShow",
+                                            "started_at": "1/25/2017",
+                                            "duration": "60 min",
+                                            "power": "108 W",
+                                            "heart_rate": "130 BPM",
+                                            "efficiency": "0.831%",
+                                            "links": {
+                                                "edit": {
+                                                    "url": "/rides/798/edit",
+                                                    "method": "GET",
+                                                    "body": {}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
