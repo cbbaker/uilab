@@ -1,12 +1,18 @@
-module Actions exposing (Model
-                        , Msg
-                        , decodeModel
-                        , update
-                        , inProgress
-                        , activate
-                        , activateWithModel
-                        , member
-                        )
+module Actions
+    exposing
+        ( Model
+        , Msg
+        , empty
+        , updateModel
+        , plainPublishAction
+        , modelPublishAction
+        , decodeModel
+        , update
+        , inProgress
+        , activate
+        , activateWithModel
+        , member
+        )
 
 {-| This library abstracts out the side-effects from a UI action. The
 Actions model is a dictionary which maps strings, representing what
@@ -17,6 +23,8 @@ are sent when it occurs.
 @docs Model, Msg
 
 @docs decodeModel, update, inProgress, activate, activateWithModel, member
+
+@docs empty, updateModel, modelPublishAction, plainPublishAction
 
 -}
 
@@ -32,6 +40,33 @@ import PubSub
 type alias Model =
     { actions : Dict String Action
     }
+
+
+{-| Empty actions model
+-}
+empty : Model
+empty =
+    Model Dict.empty
+
+
+{-| update actions model
+-}
+updateModel : String -> Action -> Model -> Model
+updateModel key action model =
+    let
+        update maybeAction =
+            case maybeAction of
+                Just oldAction ->
+                    Just
+                        { oldAction
+                            | links = action.links ++ oldAction.links
+                            , publishes = action.publishes ++ oldAction.publishes
+                        }
+
+                Nothing ->
+                    Just action
+    in
+        { model | actions = Dict.update key update model.actions }
 
 
 type alias Action =
@@ -60,9 +95,22 @@ type Payload
     | PlainPayload Dec.Value
 
 
-{-| Message type for actions
- -}
+{-| Creates an action consisting of a plain publish command
+-}
+plainPublishAction : String -> Dec.Value -> Action
+plainPublishAction channel value =
+    Action [] [ Publish channel <| PlainPayload value ]
 
+
+{-| Creates an action consisting of a model publish command
+-}
+modelPublishAction : String -> Action
+modelPublishAction channel =
+    Action [] [ Publish channel ModelPayload ]
+
+
+{-| Message type for actions
+-}
 type Msg
     = Click String (Maybe Dec.Value)
     | ClickResult String Int (Result Http.Error Dec.Value)
@@ -70,7 +118,6 @@ type Msg
 
 {-| Returns a message which triggers the action
 -}
-
 activate : String -> Msg
 activate which =
     Click which Nothing
@@ -86,7 +133,6 @@ activateWithModel which model =
 
 {-| Indicates whether any of the actions are in progress
 -}
-
 inProgress : String -> Model -> Bool
 inProgress key =
     .actions
@@ -105,7 +151,6 @@ member key =
 
 {-| decodeModel parses JSON to create a model
 -}
-
 decodeModel : Decoder Model
 decodeModel =
     Dec.map Model
@@ -145,7 +190,6 @@ decodePayload =
 
 {-| Updates http requests and responses
 -}
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of

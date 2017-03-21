@@ -4,11 +4,18 @@
     "repository": "https://github.com/cbbaker/uilab.git",
     "license": "BSD3",
     "source-directories": [
-        "../../src", "."
+        "../../src",
+        "."
     ],
-    "exposed-modules": ["PubSub", "Actions",
-                        "UI.Decoders", "UI.Subscriptions",
-                        "UI.Types", "UI.Updaters", "UI.Viewers"],
+    "exposed-modules": [
+        "PubSub",
+        "Actions",
+        "UI.Decoders",
+        "UI.Subscriptions",
+        "UI.Types",
+        "UI.Updaters",
+        "UI.Viewers"
+    ],
     "dependencies": {
         "elm-lang/core": "5.1.1 <= v < 6.0.0",
         "elm-lang/html": "2.0.0 <= v < 3.0.0",

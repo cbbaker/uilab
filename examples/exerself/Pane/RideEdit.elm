@@ -45,6 +45,16 @@ type alias Data =
     }
 
 
+template : String -> Decoder Model
+template id =
+    (field "data" decodeData)
+        |> Dec.andThen
+            (\data ->
+                Dec.map (Model (id ++ "Show") data)
+                    (field "actions" (decodeActions id data.newRideId))
+            )
+
+
 decodeModel : Environment -> Decoder Model
 decodeModel env =
     Dec.map3 Model
@@ -63,6 +73,7 @@ maybeLookupData env =
             case decodeValue decodeData value of
                 Ok data ->
                     Dec.succeed data
+
                 Err _ ->
                     decodeData
 
@@ -90,20 +101,74 @@ decodeString =
 
 
 encodeData : Data -> Enc.Value
-encodeData { userId, started_at, duration, power, heartRate, notes } =
-    Enc.object
-        [ ( "user_id", Enc.int userId )
-        , ( "started_at", Enc.string started_at.value )
-        , ( "duration", encodeInt duration.value )
-        , ( "power", encodeInt power.value )
-        , ( "heart_rate", encodeInt heartRate.value )
-        , ( "notes", Enc.string notes.value )
-        ]
-
+encodeData { userId, started_at, duration, power, heartRate, notes, newRideId } =
+    let
+        data =
+            Enc.object
+               [ ( "user_id", Enc.int userId )
+               , ( "started_at", Enc.string started_at.value )
+               , ( "duration", encodeInt duration.value )
+               , ( "power", encodeInt power.value )
+               , ( "heart_rate", encodeInt heartRate.value )
+               , ( "notes", Enc.string notes.value )
+               ]
+    in
+        case newRideId of
+            Nothing ->
+                data
+                    
+            Just rideId ->
+                Enc.object
+                [ ( rideId
+                  , Enc.object
+                      [ ( "type", Enc.string "updatedItem")
+                      , ( "data", data )
+                      , ( "actions", Enc.object [])
+                      ]
+                  )
+                ]
 
 encodeInt : String -> Enc.Value
 encodeInt =
     String.toInt >> Result.withDefault 0 >> Enc.int
+
+
+decodeActions : String -> Maybe String -> Decoder Actions.Model
+decodeActions id newRideId =
+    Dec.map (addActions id newRideId)
+        Actions.decodeModel
+
+
+addActions : String -> Maybe String -> Actions.Model -> Actions.Model
+addActions id newRideId =
+    let
+        showShow id =
+            Actions.plainPublishAction id <| Enc.string "show"
+
+        pushModel =
+            Actions.modelPublishAction (id ++ "Edit")
+
+        deleteModel =
+            Actions.plainPublishAction "deleteRide" <| Enc.list <| [ Enc.string id ]
+
+        insertModel =
+            Actions.modelPublishAction "insertRide"
+
+    in
+        case newRideId of
+            Nothing ->
+                ((Actions.updateModel "cancel" (showShow id))
+                    >> (Actions.updateModel "update" (showShow id))
+                    >> (Actions.updateModel "update" pushModel)
+                    >> (Actions.updateModel "delete" deleteModel)
+                )
+
+            Just rideId ->
+                ((Actions.updateModel "cancel" deleteModel)
+                     >> (Actions.updateModel "update" deleteModel)
+                     >> (Actions.updateModel "update" insertModel)
+                     >> (Actions.updateModel "update" (showShow rideId))
+                )
 
 
 type Msg
@@ -393,16 +458,17 @@ controls data actions =
                                 clickEventWithModel "cancel" <| Enc.list [ Enc.string newRideId ]
                 in
                     [ a
-                      [ href "#"
-                      , classList
+                        [ href "#"
+                        , classList
                             [ ( "btn", True )
                             , ( "btn-default", True )
                             , ( "active", Actions.inProgress "cancel" actions )
                             ]
-                      , Attribs.attribute "role" "button"
-                      , click
-                      ] [ text "back" ]
-                ]
+                        , Attribs.attribute "role" "button"
+                        , click
+                        ]
+                        [ text "back" ]
+                    ]
             else
                 []
 

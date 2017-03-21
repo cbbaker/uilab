@@ -56,8 +56,8 @@ type alias LayoutRegistry pane paneMsg =
 {-| Subscriptions to update Layouts
 -}
 type alias Subscriptions pane paneMsg =
-    { insert : Maybe ( String, Decoder (Model pane paneMsg) )
-    , update : Maybe ( String, Decoder (Model pane paneMsg) )
+    { insert : Maybe ( String, String -> Decoder (Model pane paneMsg) )
+    , update : Maybe ( String, String -> Decoder (Model pane paneMsg) )
     , delete : Maybe String
     }
 

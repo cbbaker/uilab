@@ -26,12 +26,20 @@ type alias Data =
     }
 
 
-decodeModel : Decoder Model
-decodeModel =
-    Dec.map3 Model
-        (field "subscription" Dec.string)
+template : String -> Decoder Model
+template id =
+    Dec.map2 (Model (id ++ "Edit"))
         (field "data" decodeData)
-        (field "actions" Actions.decodeModel)
+        (field "actions" (decodeActions id))
+
+
+
+-- decodeModel : Decoder Model
+-- decodeModel =
+--     Dec.map3 Model
+--         (field "subscription" Dec.string)
+--         (field "data" decodeData)
+--         (field "actions" decode)
 
 
 decodeData : Decoder Data
@@ -57,9 +65,27 @@ encodeData { userId, started_at, duration, power, heartRate, notes } =
         ]
 
 
-encodeInt : String -> Enc.Value
-encodeInt =
-    String.toInt >> Result.withDefault 0 >> Enc.int
+decodeActions : String -> Decoder Actions.Model
+decodeActions id =
+    Dec.map (addActions id)
+        Actions.decodeModel
+
+
+addActions : String -> Actions.Model -> Actions.Model
+addActions id =
+    let
+        showEdit =
+            Actions.plainPublishAction id <| Enc.string "edit"
+
+        pushModel =
+            Actions.modelPublishAction (id ++ "Show")
+
+        deleteModel =
+            Actions.plainPublishAction "deleteRide" <| Enc.list <| [ Enc.string id ]
+    in
+        (Actions.updateModel "edit" showEdit)
+            >> (Actions.updateModel "edit" pushModel)
+            >> (Actions.updateModel "delete" deleteModel)
 
 
 type Msg
