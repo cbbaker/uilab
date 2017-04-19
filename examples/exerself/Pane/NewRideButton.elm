@@ -19,7 +19,7 @@ type alias Model =
     , idPrefix : String
     , defaults : Defaults
     , last : Dec.Value
-    , template : Dec.Value
+    , newItemActions : Dec.Value
     , actions : Actions.Model
     }
 
@@ -49,6 +49,7 @@ subscriptions model =
         , PubSub.subscribe "newItemEdit" decodeCreate
         ]
 
+
 decodeCreate : Decoder Msg
 decodeCreate =
     Dec.map Create Dec.value
@@ -62,7 +63,7 @@ decodeModel =
         (field "idPrefix" Dec.string)
         (field "defaults" decodeDefaults)
         (field "last" value)
-        (field "template" value)
+        (field "newItemActions" value)
         (field "actions" Actions.decodeModel)
 
 
@@ -116,14 +117,16 @@ updateInsertRide model now =
 
         ride =
             Enc.object
-                [ ( "template", model.template )
+                [ ( "type", Enc.string "newItem")
                 , ( "data", computeDefaults id model now )
+                , ( "actions", model.newItemActions )
                 ]
 
         message =
-            Enc.object [ (id, ride)]
+            Enc.object [ ( id, ride ) ]
     in
-        { model | newItemCount = (model.newItemCount + 1) } ! [ PubSub.publish "insertRide" (Debug.log "insertRide" message) ]
+        { model | newItemCount = (model.newItemCount + 1) }
+            ! [ PubSub.publish "insertRide" (Debug.log "insertRide" message) ]
 
 
 lookup : String -> Dec.Value -> Dec.Value
@@ -149,7 +152,7 @@ computeDefaults id { defaults, last } now =
                 ConstInt int ->
                     ( name, Enc.int int ) :: acc
     in
-        Enc.object <| Dict.foldl update [("newRideId", Enc.string id)] defaults
+        Enc.object <| Dict.foldl update [ ( "newRideId", Enc.string id ) ] defaults
 
 
 updateActions : Actions.Msg -> Model -> ( Model, Cmd Msg )

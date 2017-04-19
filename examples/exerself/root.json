@@ -1,23 +1,43 @@
 {
-    "type": "Panel",
-    "children": {
-        "heading": {
-            "type": "Title",
-            "text": "UILab",
-            "level": 3,
-            "classes": ["panel-title"]
-        },
+    "linkRow": {
+        "type": "function",
+        "arguments": ["text", "url"],
         "body": {
-            "type": "Container",
+            "type": "row",
             "children": {
-                "row": {
-                    "type": "Row",
-                    "children": {
-                        "editList": {
-                            "type": "Link",
+                "link": {
+                    "type": "link",
+                    "text": "text",
+                    "classes": [],
+                    "url": "url"
+                }
+            }
+        }
+    },
+    "main": {
+        "type": "panel",
+        "children": {
+            "heading": {
+                "type": "title",
+                "text": "UILab",
+                "level": 3,
+                "classes": ["panel-title"]
+            },
+            "body": {
+                "type": "container",
+                "children": {
+                    "showList": {
+                        "type": "linkRow",
+                        "arguments": {
+                            "text": "List rides",
+                            "url": "/index/html#showList.json"
+                        }
+                    },
+                    "editList": {
+                        "type": "linkRow",
+                        "arguments": {
                             "text": "List rides with edit",
-                            "classes": [],
-                            "url": "/index.html#editList"
+                            "url": "/index/html#editList.json"
                         }
                     }
                 }

@@ -14,20 +14,18 @@ import PubSub
 {-| Takes a layout registry, a pane decoder, a pane subscription
 function, and a UI, and returns the subscriptions.
 -}
-
 subscriptions :
     LayoutRegistry pane paneMsg
-    -> (String -> Environment -> Decoder pane)
     -> (pane -> Sub paneMsg)
     -> Model pane paneMsg
     -> Sub (Msg pane paneMsg)
-subscriptions layouts decodePane paneSubscriptions model =
+subscriptions layouts paneSubscriptions model =
     case model of
         Layout layoutModel ->
-            layoutModel |> layoutSubscriptions layouts decodePane paneSubscriptions |> Sub.map LayoutMsg
+            layoutModel |> layoutSubscriptions layouts paneSubscriptions |> Sub.map LayoutMsg
 
         Choice choiceModel ->
-            choiceModel |> choiceSubscriptions layouts decodePane paneSubscriptions |> Sub.map ChoiceMsg
+            choiceModel |> choiceSubscriptions layouts paneSubscriptions |> Sub.map ChoiceMsg
 
         Pane paneModel ->
             paneSubscriptions paneModel |> Sub.map PaneMsg
@@ -35,30 +33,32 @@ subscriptions layouts decodePane paneSubscriptions model =
 
 layoutSubscriptions :
     LayoutRegistry pane paneMsg
-    -> (String -> Environment -> Decoder pane)
     -> (pane -> Sub paneMsg)
     -> LayoutType pane paneMsg
     -> Sub (LayoutMsgType pane paneMsg)
-layoutSubscriptions layouts decodePane paneSubscriptions model =
+layoutSubscriptions layouts paneSubscriptions model =
     let
         sub ( key, child ) =
-            child |> subscriptions layouts decodePane paneSubscriptions |> Sub.map (LayoutChildMsg key)
+            child |> subscriptions layouts paneSubscriptions |> Sub.map (LayoutChildMsg key)
 
         childSubs =
             List.map sub model.children
 
+        wrapUI key decoder =
+            [ ( key, decoder ) ]
+
         insertSub =
             case model.subscriptions.insert of
-                Just ( insertKey, decoder ) ->
-                    [ PubSub.subscribe insertKey <| decodeLayoutInsert layouts decodePane ]
+                Just ( insertKey, template ) ->
+                    [ PubSub.subscribe insertKey <| decodeTemplate Insert template ]
 
                 Nothing ->
                     []
 
         updateSub =
             case model.subscriptions.update of
-                Just ( updateKey, decoder ) ->
-                    [ PubSub.subscribe updateKey <| decodeLayoutUpdate layouts decodePane ]
+                Just ( updateKey, template ) ->
+                    [ PubSub.subscribe updateKey <| decodeTemplate Update template ]
 
                 Nothing ->
                     []
@@ -74,16 +74,48 @@ layoutSubscriptions layouts decodePane paneSubscriptions model =
         Sub.batch (insertSub ++ updateSub ++ deleteSub ++ childSubs)
 
 
+decodeTemplate :
+    (List ( String, Model pane paneMsg ) -> LayoutMsgType pane paneMsg)
+    -> (String -> Decoder (Model pane paneMsg))
+    -> Decoder (LayoutMsgType pane paneMsg)
+decodeTemplate tagger template =
+    Json.keyValuePairs Json.value
+        |> Json.andThen
+            (\pairs ->
+                let
+                    decodePairs :
+                        List ( String, Json.Value )
+                        -> List ( String, Model pane paneMsg )
+                        -> Decoder (LayoutMsgType pane paneMsg)
+                    decodePairs pairs acc =
+                        case pairs of
+                            ( key, value ) :: rest ->
+                                case Json.decodeValue (template key) value of
+                                    Ok result ->
+                                        decodePairs rest (( key, result ) :: acc)
+
+                                    Err err ->
+                                        Json.fail err
+
+                            [] ->
+                                acc
+                                    |> List.reverse
+                                    |> tagger
+                                    |> Json.succeed
+                in
+                    decodePairs pairs []
+            )
+
+
 choiceSubscriptions :
     LayoutRegistry pane paneMsg
-    -> (String -> Environment -> Decoder pane)
     -> (pane -> Sub paneMsg)
     -> ChoiceType pane paneMsg
     -> Sub (ChoiceMsgType pane paneMsg)
-choiceSubscriptions layouts decodePane paneSubscriptions model =
+choiceSubscriptions layouts paneSubscriptions model =
     let
         childSub ( key, child ) =
-            child |> subscriptions layouts decodePane paneSubscriptions |> Sub.map (ChoiceChildMsg key)
+            child |> subscriptions layouts paneSubscriptions |> Sub.map (ChoiceChildMsg key)
 
         chooseSub =
             case model.subscription of

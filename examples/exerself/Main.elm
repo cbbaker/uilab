@@ -4,14 +4,13 @@ import Navigation exposing (program)
 import Html exposing (Html, h1, text)
 import Http
 import Json.Decode exposing (..)
-
 import UI.Types as UI
 import UI.Subscriptions as UI
-import UI.Decoders as UI
 import UI.Updaters as UI
 import UI.Viewers as UI
 import Layout
 import Pane
+import Templates
 
 
 main : Program Value Model Msg
@@ -42,11 +41,13 @@ subscriptions model =
             Sub.none
 
         Loaded uiModel ->
-            uiModel |> UI.subscriptions Layout.layouts Pane.decodeModel Pane.subscriptions |> Sub.map UIMsg
+            uiModel |> UI.subscriptions Layout.layouts Pane.subscriptions |> Sub.map UIMsg
+
 
 uiDecoder : Decoder (UI.Model Pane.Model Pane.Msg)
 uiDecoder =
-    UI.decodeModel Layout.layouts Pane.decodeModel UI.empty
+    Templates.root
+
 
 init : Value -> Navigation.Location -> ( Model, Cmd Msg )
 init value { hash } =
@@ -61,22 +62,23 @@ init value { hash } =
 ajaxUrl : String -> Maybe String
 ajaxUrl hash =
     if String.length hash > 1 then
-        let 
-            tag = String.dropLeft 1 hash
+        let
+            tag =
+                String.dropLeft 1 hash
         in
             "/" ++ tag |> (Debug.log "loading") |> Just
     else
         Nothing
+
 
 getAjax : String -> Model -> ( Model, Cmd Msg )
 getAjax hash model =
     case ajaxUrl hash of
         Just url ->
             model ! [ Http.send Load <| Http.get url uiDecoder ]
+
         Nothing ->
             model ! []
-                          
-    
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

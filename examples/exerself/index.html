@@ -27,32 +27,162 @@
     <script src="elm.js"></script>
     <script>
       var flags = {
-        type: "Panel",
-        children: {
-          heading: {
-            type: "Title",
-            text: "UILab",
-            level: 3,
-            classes: ["panel-title"]
-          },
-          body: {
-            type: "Container",
-            children: {
-              row: {
-                type: "Row",
-                children: {
-                  editList: {
-                    type: "Link",
-                    text: "List rides with edit",
-                    classes: [],
-                    url: "/index.html#editList.json"
-                  }
+        "heading": {
+            "text": "Listing rides",
+            "level": 3,
+            "classes": ["panel-title"]
+        },
+        "body": {
+            "newButton": {
+                "type": "NewRideButton",
+                "text": "Create new",
+                "idPrefix": "newRide",
+                "defaults": {
+                    "user_id": {
+                        "type": "const_int",
+                        "value": 1
+                    },
+                    "started_at": {
+                        "type": "current_time"
+                    },
+                    "duration": {
+                        "type": "last_create"
+                    },
+                    "power": {
+                        "type": "last_create"
+                    },
+                    "heart_rate": {
+                        "type": "last_create"
+                    },
+                    "notes": {
+                        "type": "const_string",
+                        "value": ""
+                    }
+                },
+                "last": {
+                    "user_id": 1,
+                    "started_at": "2/1/2017",
+                    "duration": 60,
+                    "power": 110,
+                    "heart_rate": 128,
+                    "notes": ""
+                },
+                "newItemActions": {
+                    "update": {
+                        "links": [{
+                            "url": "/rides",
+                            "method": "POST",
+                            "body": {},
+                            "success": "newItemUpdate"
+                        }],
+                        "publishes": []
+                    }
+                },
+                "enabled": true,
+                "actions": {
+                    "press": {
+                        "links": [],
+                        "publishes": [{
+                            "channel": "newRideButton",
+                            "payload": {}
+                        }]
+                    }
                 }
-              }
+            },
+            "list": {
+                "item801": {
+                    "data": {
+                        "user_id": 1,
+                        "started_at": "2/1/2017",
+                        "duration": 60,
+                        "power": 110,
+                        "heart_rate": 128,
+                        "notes": ""
+                    },
+                    "actions": {
+                        "update": {
+                            "links": [{
+                                "url": "/rides/801",
+                                "method": "PUT",
+                                "body": {},
+                                "success": "item801Update"
+                            }],
+                            "publishes": []
+                        },
+                        "delete": {
+                            "links": [{
+                                "url": "/rides/801",
+                                "method": "DELETE",
+                                "body": {},
+                                "success": "item801Delete"
+                            }],
+                            "publishes": []
+                        }
+                    }
+                },
+                "item800": {
+                    "data": {
+                        "user_id": 1,
+                        "started_at": "1/31/2017",
+                        "duration": 60,
+                        "power": 108,
+                        "heart_rate": 128,
+                        "notes": ""
+                    },
+                    "actions": {
+                        "update": {
+                            "links": [{
+                                "url": "/rides/800",
+                                "method": "PUT",
+                                "body": {},
+                                "success": "item800Update"
+                            }],
+                            "publishes": []
+                        },
+                        "delete": {
+                            "links": [{
+                                "url": "/rides/800",
+                                "method": "DELETE",
+                                "body": {},
+                                "success": "item800Delete"
+                            }],
+                            "publishes": []
+                        }
+                    }
+                },
+                "item798": {
+                    "data": {
+                        "user_id": 1,
+                        "started_at": "1/25/2017",
+                        "duration": 60,
+                        "power": 108,
+                        "heart_rate": 130,
+                        "notes": ""
+                    },
+                    "actions": {
+                        "update": {
+                            "links": [{
+                                "url": "/rides/798",
+                                "method": "PUT",
+                                "body": {},
+                                "success": "item798Update"
+                            }],
+                            "publishes": []
+                        },
+                        "delete": {
+                            "links": [{
+                                "url": "/rides/798",
+                                "method": "DELETE",
+                                "body": {},
+                                "success": "item798Delete"
+                            }],
+                            "publishes": []
+                        }
+                    }
+                }
             }
-          }
         }
-      };
+    };
     </script>
     <script>
       var node = document.getElementById('main');
