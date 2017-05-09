@@ -1,5 +1,6 @@
 module Pane.RideEdit exposing (..)
 
+import Date exposing (Date)
 import Html exposing (..)
 import Html.Attributes as Attribs exposing (..)
 import Html.Events exposing (..)
@@ -18,28 +19,68 @@ type alias Model =
 
 
 type alias Validated a =
-    { value : a
-    , validation : Validation
+    { input : String
+    , validation : Validation a
     }
 
 
 validated : a -> Validated a
 validated a =
-    Validated a Unvalidated
+    Validated (toString a) Unvalidated
 
 
-type Validation
+type Validation a
     = Unvalidated
-    | Success
+    | Success a
     | Error String
+
+
+value : Validated a -> a -> a
+value { validation } default =
+    case validation of
+        Success a ->
+            a
+
+        _ ->
+            default
+
+
+encodeDate : Validated Date -> Enc.Value
+encodeDate { validation } =
+    case validation of
+        Success value ->
+            Enc.int <| floor ((Date.toTime value) / 1000.0)
+
+        _ ->
+            Enc.null
+
+
+encodeInt : Validated Int -> Enc.Value
+encodeInt { validation } =
+    case validation of
+        Success value ->
+            Enc.int value
+
+        _ ->
+            Enc.null
+
+
+encodeString : Validated String -> Enc.Value
+encodeString { validation } =
+    case validation of
+        Success value ->
+            Enc.string value
+
+        _ ->
+            Enc.null
 
 
 type alias Data =
     { userId : Int
-    , started_at : Validated String
-    , duration : Validated String
-    , power : Validated String
-    , heartRate : Validated String
+    , started_at : Validated Date
+    , duration : Validated Int
+    , power : Validated Int
+    , heartRate : Validated Int
     , notes : Validated String
     , newRideId : Maybe String
     }
@@ -82,7 +123,7 @@ decodeData : Decoder Data
 decodeData =
     Dec.map7 Data
         (field "user_id" Dec.int)
-        (field "started_at" decodeString)
+        (field "started_at" decodeDate)
         (field "duration" decodeInt)
         (field "power" decodeInt)
         (field "heart_rate" decodeInt)
@@ -90,14 +131,24 @@ decodeData =
         (maybe (field "newRideId" Dec.string))
 
 
-decodeInt : Decoder (Validated String)
+decodeInt : Decoder (Validated Int)
 decodeInt =
-    Dec.map (toString >> validated) Dec.int
+    Dec.map (toString >> validateNumber) Dec.int
 
 
 decodeString : Decoder (Validated String)
 decodeString =
-    Dec.map validated Dec.string
+    Dec.map validateSuccess Dec.string
+
+
+decodeDate : Decoder (Validated Date)
+decodeDate =
+    Dec.map
+        (((*) 1000)
+            >> Date.fromTime
+            >> (\value -> Validated (toString value) (Success value))
+        )
+        Dec.float
 
 
 encodeData : Data -> Enc.Value
@@ -105,32 +156,28 @@ encodeData { userId, started_at, duration, power, heartRate, notes, newRideId } 
     let
         data =
             Enc.object
-               [ ( "user_id", Enc.int userId )
-               , ( "started_at", Enc.string started_at.value )
-               , ( "duration", encodeInt duration.value )
-               , ( "power", encodeInt power.value )
-               , ( "heart_rate", encodeInt heartRate.value )
-               , ( "notes", Enc.string notes.value )
-               ]
+                [ ( "user_id", Enc.int userId )
+                , ( "started_at", encodeDate started_at )
+                , ( "duration", encodeInt duration )
+                , ( "power", encodeInt power )
+                , ( "heart_rate", encodeInt heartRate )
+                , ( "notes", encodeString notes )
+                ]
     in
         case newRideId of
             Nothing ->
                 data
-                    
+
             Just rideId ->
                 Enc.object
-                [ ( rideId
-                  , Enc.object
-                      [ ( "type", Enc.string "updatedItem")
-                      , ( "data", data )
-                      , ( "actions", Enc.object [])
-                      ]
-                  )
-                ]
-
-encodeInt : String -> Enc.Value
-encodeInt =
-    String.toInt >> Result.withDefault 0 >> Enc.int
+                    [ ( rideId
+                      , Enc.object
+                            [ ( "type", Enc.string "updatedItem" )
+                            , ( "data", data )
+                            , ( "actions", Enc.object [] )
+                            ]
+                      )
+                    ]
 
 
 decodeActions : String -> Maybe String -> Decoder Actions.Model
@@ -145,7 +192,7 @@ addActions id newRideId =
         showShow id =
             Actions.plainPublishAction id <| Enc.string "show"
 
-        pushModel =
+        pushModel id =
             Actions.modelPublishAction (id ++ "Edit")
 
         deleteModel =
@@ -153,21 +200,19 @@ addActions id newRideId =
 
         insertModel =
             Actions.modelPublishAction "insertRide"
-
     in
         case newRideId of
             Nothing ->
                 ((Actions.updateModel "cancel" (showShow id))
                     >> (Actions.updateModel "update" (showShow id))
-                    >> (Actions.updateModel "update" pushModel)
+                    >> (Actions.updateModel "update" (pushModel id))
                     >> (Actions.updateModel "delete" deleteModel)
                 )
 
             Just rideId ->
                 ((Actions.updateModel "cancel" deleteModel)
-                     >> (Actions.updateModel "update" deleteModel)
-                     >> (Actions.updateModel "update" insertModel)
-                     >> (Actions.updateModel "update" (showShow rideId))
+                    >> (Actions.updateModel "update" (showShow rideId))
+                    >> (Actions.updateModel "update" (pushModel "newItem"))
                 )
 
 
@@ -221,7 +266,7 @@ updateDate started_at model =
         data =
             model.data
     in
-        updateData { data | started_at = validateNonempty started_at } model
+        updateData { data | started_at = validateDate started_at } model
 
 
 updateDuration : String -> Model -> ( Model, Cmd Msg )
@@ -265,21 +310,31 @@ updateData data model =
     { model | data = data } ! []
 
 
+validateDate : String -> Validated Date
+validateDate input =
+    case Date.fromString input of
+        Ok date ->
+            Validated input <| Success date
+
+        Err err ->
+            Validated input (Error err)
+
+
 validateNonempty : String -> Validated String
 validateNonempty input =
     Validated input <|
         if String.length input > 0 then
-            Success
+            Success input
         else
             Error "cannot be empty"
 
 
-validateNumber : String -> Validated String
+validateNumber : String -> Validated Int
 validateNumber input =
     Validated input <|
         case String.toInt input of
-            Ok _ ->
-                Success
+            Ok int ->
+                Success int
 
             _ ->
                 Error "is not a number"
@@ -287,7 +342,7 @@ validateNumber input =
 
 validateSuccess : String -> Validated String
 validateSuccess input =
-    Validated input Success
+    Validated input <| Success input
 
 
 updateActions : Actions.Msg -> Model -> ( Model, Cmd Msg )
@@ -317,7 +372,7 @@ viewEditing data actions =
         ]
 
 
-inputGroup : String -> String -> Validation -> List (Attribute Msg) -> Html Msg
+inputGroup : String -> String -> Validation a -> List (Attribute Msg) -> Html Msg
 inputGroup inputName labelText validation inputAttribs =
     let
         ( classString, message ) =
@@ -339,32 +394,32 @@ inputGroup inputName labelText validation inputAttribs =
             )
 
 
-inputGroupClassList : Validation -> ( String, Maybe String )
+inputGroupClassList : Validation a -> ( String, Maybe String )
 inputGroupClassList validation =
     case validation of
         Unvalidated ->
             ( "form-group", Nothing )
 
-        Success ->
+        Success _ ->
             ( "form-group has-success", Nothing )
 
         Error msg ->
             ( "form-group has-error", Just msg )
 
 
-dateInput : String -> String -> Validated String -> (String -> Msg) -> Html Msg
-dateInput inputName labelText { value, validation } tag =
+dateInput : String -> String -> Validated Date -> (String -> Msg) -> Html Msg
+dateInput inputName labelText { input, validation } tag =
     inputGroup inputName
         labelText
         validation
         [ type_ "datetime"
         , onInput tag
-        , Attribs.value value
+        , Attribs.value input
         ]
 
 
-numberInput : String -> String -> Validated String -> (String -> Msg) -> Html Msg
-numberInput inputName labelText { value, validation } tag =
+numberInput : String -> String -> Validated Int -> (String -> Msg) -> Html Msg
+numberInput inputName labelText { input, validation } tag =
     inputGroup inputName
         labelText
         validation
@@ -372,19 +427,19 @@ numberInput inputName labelText { value, validation } tag =
         , (Attribs.min "0")
         , (pattern "d*")
         , onInput tag
-        , Attribs.value value
+        , Attribs.value input
         ]
 
 
 textAreaInput : String -> String -> Validated String -> (String -> Msg) -> Html Msg
-textAreaInput inputName labelText { value } tag =
+textAreaInput inputName labelText { input } tag =
     div [ class "form-group" ]
         [ label [ for inputName ] [ text labelText ]
         , textarea
             [ class "form-control"
             , rows 5
             , onInput tag
-            , Attribs.value value
+            , Attribs.value input
             ]
             []
         ]
@@ -401,7 +456,13 @@ valid { started_at, duration, heartRate, power, notes } =
                 _ ->
                     True
     in
-        List.all valid [ started_at, duration, heartRate, power, notes ]
+        List.all identity
+            [ valid started_at
+            , valid duration
+            , valid heartRate
+            , valid power
+            , valid notes
+            ]
 
 
 controls : Data -> Actions.Model -> Html Msg

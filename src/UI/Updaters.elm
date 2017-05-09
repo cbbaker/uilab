@@ -7,10 +7,10 @@ module UI.Updaters exposing (update)
 
 import UI.Types exposing (..)
 
+
 {-| Takes a pane update function, a message, and a UI model, and
 returns the updated model and commands
 -}
-
 update :
     (paneMsg -> pane -> ( pane, Cmd paneMsg ))
     -> Msg pane paneMsg
@@ -58,8 +58,8 @@ updateLayout updatePane msg model =
         Insert inserts ->
             updateLayoutInserts (Debug.log "inserts" inserts) model
 
-        Update updateLayouts ->
-            model ! []
+        Update updates ->
+            updateLayoutUpdates (Debug.log "updateds" updates) model
 
         Delete deletes ->
             updateLayoutDeletes deletes model
@@ -94,14 +94,36 @@ updateLayoutChildren updatePane updateLayoutKey msg models =
         List.foldr updateChild ( [], Cmd.none ) models
 
 
-
-
 updateLayoutInserts :
     List ( String, Model pane paneMsg )
     -> LayoutType pane paneMsg
     -> ( LayoutType pane paneMsg, Cmd (LayoutMsgType pane paneMsg) )
 updateLayoutInserts inserts model =
     { model | children = inserts ++ model.children } ! []
+
+
+updateLayoutUpdates :
+    List ( String, ( String, Model pane paneMsg ) )
+    -> LayoutType pane paneMsg
+    -> ( LayoutType pane paneMsg, Cmd (LayoutMsgType pane paneMsg) )
+updateLayoutUpdates updates model =
+    let
+        update updates children =
+            case updates of
+                ( oldKey, ( newKey, newValue ) ) :: rest ->
+                    update rest <|
+                        List.map (replace oldKey ( newKey, newValue )) children
+
+                [] ->
+                    children
+
+        replace oldKey newEntry ( key, value ) =
+            if key == oldKey then
+                newEntry
+            else
+                ( key, value )
+    in
+        { model | children = update updates model.children } ! []
 
 
 updateLayoutDeletes :
@@ -114,6 +136,8 @@ updateLayoutDeletes deletes model =
             not (List.member key deletes)
     in
         { model | children = List.filter filter model.children } ! []
+
+
 updateChoice :
     (paneMsg -> pane -> ( pane, Cmd paneMsg ))
     -> ChoiceMsgType pane paneMsg

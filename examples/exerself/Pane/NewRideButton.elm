@@ -52,7 +52,28 @@ subscriptions model =
 
 decodeCreate : Decoder Msg
 decodeCreate =
-    Dec.map Create Dec.value
+    Dec.keyValuePairs value |> Dec.andThen decodeCreatePairs
+
+
+decodeCreatePairs : List ( a, Enc.Value ) -> Decoder Msg
+decodeCreatePairs pairs =
+    case pairs of
+        ( _, value ) :: _ ->
+            case decodeValue decodeCreateValue value of
+                Ok defaults ->
+                    Dec.succeed defaults
+
+                Err error ->
+                    Dec.fail error
+
+        _ ->
+            Dec.fail "Couldn't find object in Create"
+
+
+decodeCreateValue : Decoder Msg
+decodeCreateValue =
+    Dec.map Create
+        (field "data" Dec.value)
 
 
 decodeModel : Decoder Model
@@ -117,7 +138,7 @@ updateInsertRide model now =
 
         ride =
             Enc.object
-                [ ( "type", Enc.string "newItem")
+                [ ( "type", Enc.string "newItem" )
                 , ( "data", computeDefaults id model now )
                 , ( "actions", model.newItemActions )
                 ]
@@ -144,7 +165,7 @@ computeDefaults id { defaults, last } now =
                     ( name, lookup name last ) :: acc
 
                 CurrentTime ->
-                    ( name, Enc.string (toString now) ) :: acc
+                    ( name, encodeDate now ) :: acc
 
                 ConstString string ->
                     ( name, Enc.string string ) :: acc
@@ -153,6 +174,11 @@ computeDefaults id { defaults, last } now =
                     ( name, Enc.int int ) :: acc
     in
         Enc.object <| Dict.foldl update [ ( "newRideId", Enc.string id ) ] defaults
+
+
+encodeDate : Date -> Enc.Value
+encodeDate date =
+    Enc.float ((Date.toTime date) / 1000)
 
 
 updateActions : Actions.Msg -> Model -> ( Model, Cmd Msg )

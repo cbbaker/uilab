@@ -246,13 +246,16 @@ updateLinks which oldLinks override =
 followLink : String -> Int -> Link -> Maybe Dec.Value -> ( Link, Cmd Msg )
 followLink which index link override =
     let
-        body =
+        params =
             case link.payload of
                 ModelPayload ->
                     Maybe.withDefault (Enc.object []) override
 
                 PlainPayload payload ->
                     payload
+
+        body =
+            Enc.object [ ( "body", params ) ]
 
         request =
             Http.request

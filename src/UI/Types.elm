@@ -85,7 +85,7 @@ type Msg pane paneMsg
 type LayoutMsgType pane paneMsg
     = LayoutChildMsg String (Msg pane paneMsg)
     | Insert (List ( String, Model pane paneMsg ))
-    | Update (List ( String, Model pane paneMsg ))
+    | Update (List ( String, ( String, Model pane paneMsg ) ))
     | Delete (List String)
 
 

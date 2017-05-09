@@ -3,7 +3,6 @@ module Templates exposing (..)
 import Json.Decode as Json exposing (Decoder)
 import UI.Types as UI
 import UI.Templates as UI
-
 import Layout.Container
 import Layout.ListGroup
 import Layout.Panel
@@ -24,21 +23,27 @@ item id =
             , ( "edit", Pane.edit id )
             ]
 
+
 insertItem : String -> Decoder UI
 insertItem id =
     (Json.field "type" Json.string)
-        |> Json.andThen (\type_ ->
-                        case (Debug.log "insertItem type" type_) of
-                            "newItem" ->
-                                Pane.edit id
-                            _ ->
-                                item id
-                        )
+        |> Json.andThen
+            (\type_ ->
+                case (Debug.log "insertItem type" type_) of
+                    "newItem" ->
+                        Pane.edit id
+
+                    _ ->
+                        item id
+            )
 
 
 rideSubscriptions : UI.Subscriptions Pane.Model Pane.Msg
 rideSubscriptions =
-    UI.Subscriptions (Just ( "insertRide", insertItem )) Nothing (Just "deleteRide")
+    UI.Subscriptions
+        (Just ( "insertRide", insertItem ))
+        (Just ( "updateRide", item ))
+        (Just "deleteRide")
 
 
 itemList : (String -> Decoder UI) -> Decoder UI
@@ -53,7 +58,7 @@ noSubscriptions =
 
 container : List ( String, Decoder UI ) -> Decoder UI
 container =
-    UI.layoutStatic Layout.Container.view noSubscriptions 
+    UI.layoutStatic Layout.Container.view noSubscriptions
 
 
 panel : List ( String, Decoder UI ) -> Decoder UI
