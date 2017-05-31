@@ -1,5 +1,6 @@
 module Pane.RideShow exposing (..)
 
+import Date exposing (Date)
 import Html exposing (..)
 import Html.Attributes as Attribs exposing (..)
 import Html.Events exposing (..)
@@ -18,7 +19,7 @@ type alias Model =
 
 type alias Data =
     { userId : Int
-    , started_at : String
+    , started_at : Date
     , duration : Int
     , power : Int
     , heartRate : Int
@@ -46,23 +47,33 @@ decodeData : Decoder Data
 decodeData =
     Dec.map6 Data
         (field "user_id" Dec.int)
-        (field "started_at" Dec.string)
+        (field "started_at" decodeDate)
         (field "duration" Dec.int)
         (field "power" Dec.int)
         (field "heart_rate" Dec.int)
         (field "notes" Dec.string)
 
 
+decodeDate : Decoder Date
+decodeDate =
+    Dec.map (((*) 1000) >> Date.fromTime) Dec.float
+
+
 encodeData : Data -> Enc.Value
 encodeData { userId, started_at, duration, power, heartRate, notes } =
     Enc.object
         [ ( "user_id", Enc.int userId )
-        , ( "started_at", Enc.string started_at )
+        , ( "started_at", encodeDate started_at )
         , ( "duration", Enc.int duration )
         , ( "power", Enc.int power )
         , ( "heart_rate", Enc.int heartRate )
         , ( "notes", Enc.string notes )
         ]
+
+
+encodeDate : Date -> Enc.Value
+encodeDate date =
+    Enc.int <| floor ((Date.toTime date) / 1000)
 
 
 decodeActions : String -> Decoder Actions.Model
@@ -155,7 +166,7 @@ viewShow data actions =
             , onClickPreventDefault <| ActionsMsg <| Actions.activateWithModel "edit" <| encodeData data
             ]
             [ div [ class "row" ]
-                [ div [ class "col-xs-8 text-left" ] [ text started_at ]
+                [ div [ class "col-xs-8 text-left" ] [ text <| toString started_at ]
                 , div [ class "col-xs-4 text-right" ] [ text formatDuration ]
                 ]
             , div [ class "row" ]

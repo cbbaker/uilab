@@ -50,7 +50,7 @@ layoutSubscriptions layouts paneSubscriptions model =
         insertSub =
             case model.subscriptions.insert of
                 Just ( insertKey, template ) ->
-                    [ PubSub.subscribe insertKey <| decodeTemplate Insert template ]
+                    [ PubSub.subscribe insertKey <| decodeInsert Insert template ]
 
                 Nothing ->
                     []
@@ -58,7 +58,7 @@ layoutSubscriptions layouts paneSubscriptions model =
         updateSub =
             case model.subscriptions.update of
                 Just ( updateKey, template ) ->
-                    [ PubSub.subscribe updateKey <| decodeTemplate Update template ]
+                    [ PubSub.subscribe updateKey <| decodeUpdate Update template ]
 
                 Nothing ->
                     []
@@ -74,11 +74,11 @@ layoutSubscriptions layouts paneSubscriptions model =
         Sub.batch (insertSub ++ updateSub ++ deleteSub ++ childSubs)
 
 
-decodeTemplate :
+decodeInsert :
     (List ( String, Model pane paneMsg ) -> LayoutMsgType pane paneMsg)
     -> (String -> Decoder (Model pane paneMsg))
     -> Decoder (LayoutMsgType pane paneMsg)
-decodeTemplate tagger template =
+decodeInsert tagger template =
     Json.keyValuePairs Json.value
         |> Json.andThen
             (\pairs ->
@@ -96,6 +96,42 @@ decodeTemplate tagger template =
 
                                     Err err ->
                                         Json.fail err
+
+                            [] ->
+                                acc
+                                    |> List.reverse
+                                    |> tagger
+                                    |> Json.succeed
+                in
+                    decodePairs pairs []
+            )
+
+
+decodeUpdate :
+    (List ( String, ( String, Model pane paneMsg ) ) -> LayoutMsgType pane paneMsg)
+    -> (String -> Decoder (Model pane paneMsg))
+    -> Decoder (LayoutMsgType pane paneMsg)
+decodeUpdate tagger template =
+    Json.keyValuePairs (Json.keyValuePairs Json.value)
+        |> Json.andThen
+            (\pairs ->
+                let
+                    decodePairs :
+                        List ( String, List ( String, Json.Value ) )
+                        -> List ( String, ( String, Model pane paneMsg ) )
+                        -> Decoder (LayoutMsgType pane paneMsg)
+                    decodePairs pairs acc =
+                        case pairs of
+                            ( oldKey, ( newKey, value ) :: _ ) :: rest ->
+                                case Json.decodeValue (template newKey) value of
+                                    Ok result ->
+                                        decodePairs rest (( oldKey, ( newKey, result ) ) :: acc)
+
+                                    Err err ->
+                                        Json.fail err
+
+                            ( _, [] ) :: _ ->
+                                Json.fail "Trying to use update with an empty argument"
 
                             [] ->
                                 acc
