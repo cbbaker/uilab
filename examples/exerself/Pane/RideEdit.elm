@@ -12,7 +12,7 @@ import PubSub
 
 
 type alias Model =
-    { subscription : String
+    { uri : String
     , data : Data
     , actions : Actions.Model
     }
@@ -86,22 +86,22 @@ type alias Data =
     }
 
 
-template : String -> Decoder Model
-template id =
-    (field "data" decodeData)
-        |> Dec.andThen
-            (\data ->
-                Dec.map (Model (id ++ "Show") data)
-                    (field "actions" (decodeActions id data.newRideId))
-            )
+type Type
+    = New
+    | Existing
 
 
-decodeModel : Environment -> Decoder Model
-decodeModel env =
-    Dec.map3 Model
-        (field "subscription" Dec.string)
-        (field "data" (maybeLookupData env))
+template : Decoder Model
+template =
+    Dec.map3 makeModel
+        (field "uri" Dec.string)
+        (field "data" decodeData)
         (field "actions" Actions.decodeModel)
+
+
+makeModel : String -> Data -> Actions.Model -> Model
+makeModel uri data actions =
+    Model uri data <| addActions uri data.newRideId actions
 
 
 maybeLookupData : Environment -> Decoder Data
@@ -180,32 +180,26 @@ encodeData { userId, started_at, duration, power, heartRate, notes, newRideId } 
                     ]
 
 
-decodeActions : String -> Maybe String -> Decoder Actions.Model
-decodeActions id newRideId =
-    Dec.map (addActions id newRideId)
-        Actions.decodeModel
-
-
 addActions : String -> Maybe String -> Actions.Model -> Actions.Model
-addActions id newRideId =
+addActions uri newRideId =
     let
-        showShow id =
-            Actions.plainPublishAction id <| Enc.string "show"
+        showShow uri =
+            Actions.plainPublishAction uri <| Enc.string "show"
 
-        pushModel id =
-            Actions.modelPublishAction (id ++ "Edit")
+        pushModel uri =
+            Actions.modelPublishAction (uri ++ "/edit")
 
         deleteModel =
-            Actions.plainPublishAction "deleteRide" <| Enc.list <| [ Enc.string id ]
+            Actions.plainPublishAction "deleteRide" <| Enc.list <| [ Enc.string uri ]
 
         insertModel =
             Actions.modelPublishAction "insertRide"
     in
         case newRideId of
             Nothing ->
-                ((Actions.updateModel "cancel" (showShow id))
-                    >> (Actions.updateModel "update" (showShow id))
-                    >> (Actions.updateModel "update" (pushModel id))
+                ((Actions.updateModel "cancel" (showShow uri))
+                    >> (Actions.updateModel "update" (showShow uri))
+                    >> (Actions.updateModel "update" (pushModel uri))
                     >> (Actions.updateModel "delete" deleteModel)
                 )
 
@@ -228,8 +222,8 @@ type Msg
 
 
 subscriptions : Model -> Sub Msg
-subscriptions { subscription } =
-    PubSub.subscribe subscription <| Dec.map Update decodeData
+subscriptions { uri } =
+    PubSub.subscribe (uri ++ "/show") <| Dec.map Update decodeData
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

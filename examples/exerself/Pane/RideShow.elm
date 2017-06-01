@@ -11,7 +11,7 @@ import Actions
 
 
 type alias Model =
-    { subscription : String
+    { uri : String
     , data : Data
     , actions : Actions.Model
     }
@@ -27,20 +27,17 @@ type alias Data =
     }
 
 
-template : String -> Decoder Model
-template id =
-    Dec.map2 (Model (id ++ "Edit"))
+template : Decoder Model
+template =
+    Dec.map3 makeModel
+        (field "uri" Dec.string)
         (field "data" decodeData)
-        (field "actions" (decodeActions id))
+        (field "actions" Actions.decodeModel)
 
 
-
--- decodeModel : Decoder Model
--- decodeModel =
---     Dec.map3 Model
---         (field "subscription" Dec.string)
---         (field "data" decodeData)
---         (field "actions" decode)
+makeModel : String -> Data -> Actions.Model -> Model
+makeModel uri data actions =
+    Model uri data <| addActions uri actions
 
 
 decodeData : Decoder Data
@@ -76,23 +73,17 @@ encodeDate date =
     Enc.int <| floor ((Date.toTime date) / 1000)
 
 
-decodeActions : String -> Decoder Actions.Model
-decodeActions id =
-    Dec.map (addActions id)
-        Actions.decodeModel
-
-
 addActions : String -> Actions.Model -> Actions.Model
-addActions id =
+addActions uri =
     let
         showEdit =
-            Actions.plainPublishAction id <| Enc.string "edit"
+            Actions.plainPublishAction uri <| Enc.string "edit"
 
         pushModel =
-            Actions.modelPublishAction (id ++ "Show")
+            Actions.modelPublishAction (uri ++ "/show")
 
         deleteModel =
-            Actions.plainPublishAction "deleteRide" <| Enc.list <| [ Enc.string id ]
+            Actions.plainPublishAction "deleteRide" <| Enc.list <| [ Enc.string uri ]
     in
         (Actions.updateModel "edit" showEdit)
             >> (Actions.updateModel "edit" pushModel)
@@ -105,8 +96,8 @@ type Msg
 
 
 subscriptions : Model -> Sub Msg
-subscriptions { subscription } =
-    PubSub.subscribe subscription <| Dec.map Update decodeData
+subscriptions { uri } =
+    PubSub.subscribe (uri ++ "/edit") <| Dec.map Update decodeData
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

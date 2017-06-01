@@ -97,16 +97,16 @@ heading =
         Title.decodeModel
 
 
-show : String -> Decoder UI
-show id =
+show : Decoder UI
+show =
     Json.map (UI.Pane << RideShow (Meta RideShow RideShowMsg RideShow.update RideShow.view))
-        (RideShow.template id)
+        RideShow.template
 
 
-edit : String -> Decoder UI
-edit id =
+edit : Decoder UI
+edit =
     Json.map (UI.Pane << RideEdit (Meta RideEdit RideEditMsg RideEdit.update RideEdit.view))
-        (RideEdit.template id)
+        RideEdit.template
 
 
 flash : Decoder UI
@@ -119,38 +119,6 @@ createButton : Decoder UI
 createButton =
     Json.map (UI.Pane << (NewRideButton (Meta NewRideButton NewRideButtonMsg NewRideButton.update NewRideButton.view)))
         NewRideButton.decodeModel
-
-
-
--- decodeModel : String -> Environment -> Decoder Model
--- decodeModel type_ env =
---     case type_ of
---         "Link" ->
---             Json.map (Link (Meta Link LinkMsg Link.update Link.view))
---                 Link.decodeModel
---         "Text" ->
---             Json.map (Text (Meta Text TextMsg Text.update Text.view))
---                 Text.decodeModel
---         "Flash" ->
---             Json.map (Flash (Meta Flash FlashMsg Flash.update Flash.view))
---                 Flash.decodeModel
---         "TextButton" ->
---             Json.map (TextButton (Meta TextButton TextButtonMsg TextButton.update TextButton.view))
---                 TextButton.decodeModel
---         "NewRideButton" ->
---             Json.map (NewRideButton (Meta NewRideButton NewRideButtonMsg NewRideButton.update NewRideButton.view))
---                 NewRideButton.decodeModel
---         "Title" ->
---             Json.map (Title (Meta Title TitleMsg Title.update Title.view))
---                 Title.decodeModel
---         "RideShow" ->
---             Json.map (RideShow (Meta RideShow RideShowMsg RideShow.update RideShow.view))
---                 RideShow.decodeModel
---         "RideEdit" ->
---             Json.map (RideEdit (Meta RideEdit RideEditMsg RideEdit.update RideEdit.view))
---                 (RideEdit.decodeModel env)
---         _ ->
---             Json.fail (Debug.log "unknown pane" type_)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

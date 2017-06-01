@@ -19,8 +19,8 @@ item : String -> Decoder UI
 item id =
     Json.map (UI.Choice << UI.ChoiceType (Just id) "show") <|
         UI.alistDecode
-            [ ( "show", Pane.show id )
-            , ( "edit", Pane.edit id )
+            [ ( "show", Pane.show )
+            , ( "edit", Pane.edit )
             ]
 
 
@@ -31,7 +31,7 @@ insertItem id =
             (\type_ ->
                 case (Debug.log "insertItem type" type_) of
                     "newItem" ->
-                        Pane.edit id
+                        Pane.edit
 
                     _ ->
                         item id
